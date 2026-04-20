@@ -1,4 +1,4 @@
-declare module "@delma/ttid" {
+declare module "@d31ma/ttid" {
 
     /** Branded string type representing a TTID in one of its three lifecycle states. */
     export type _ttid = string | `${string}-${string}` | `${string}-${string}-${string}`
@@ -46,5 +46,5 @@ declare module "@delma/ttid" {
 }
 
 // Global ambient aliases so src/index.ts can reference these types without an import.
-type _ttid = import("@delma/ttid")._ttid
-type _timestamps = import("@delma/ttid")._timestamps
+type _ttid = import("@d31ma/ttid")._ttid
+type _timestamps = import("@d31ma/ttid")._timestamps
