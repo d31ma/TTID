@@ -120,10 +120,4 @@ jobs:
             bun install --frozen-lockfile
           fi
 
-          if [ -f package.json ] && jq -e '.scripts["blackbox:ttid"]' package.json >/dev/null; then
-            bun run blackbox:ttid
-          elif [ -f package.json ] && jq -e '.scripts.blackbox' package.json >/dev/null; then
-            bun run blackbox
-          else
-            bun test ./ttid --timeout 120000
-          fi
+          bun test ./ttid --timeout 120000
