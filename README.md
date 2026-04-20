@@ -17,8 +17,24 @@ Each TTID segment contains:
 
 ## Installation
 
+Authenticate with GitHub Packages before installing:
+
 ```bash
-npm install @delma/ttid
+npm login --scope=@d31ma --auth-type=legacy --registry=https://npm.pkg.github.com
+```
+
+Then add this to your user or project `.npmrc`:
+
+```ini
+@d31ma:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=YOUR_GITHUB_PAT
+```
+
+See GitHub's npm registry docs for the latest authentication details:
+https://docs.github.com/packages/using-github-packages-with-your-projects-ecosystem/configuring-npm-for-use-with-github-packages
+
+```bash
+npm install @d31ma/ttid
 ```
 
 ## Usage
@@ -26,7 +42,7 @@ npm install @delma/ttid
 ### Basic ID Generation
 
 ```typescript
-import TTID from '@delma/ttid';
+import TTID from '@d31ma/ttid';
 
 // Generate a new TTID (creation only)
 const newId = TTID.generate();
@@ -41,7 +57,7 @@ console.log(isValid); // Returns Date object if valid, null if invalid
 ### Progressive Updates
 
 ```typescript
-import TTID from '@delma/ttid';
+import TTID from '@d31ma/ttid';
 
 // Start with a new ID
 let id = TTID.generate();
@@ -70,7 +86,7 @@ try {
 ### Decoding Timestamps
 
 ```typescript
-import TTID from '@delma/ttid';
+import TTID from '@d31ma/ttid';
 
 // Create and update an ID
 let id = TTID.generate();
@@ -104,7 +120,7 @@ setTimeout(() => {
 ### Working with Different States
 
 ```typescript
-import TTID from '@delma/ttid';
+import TTID from '@d31ma/ttid';
 
 // Check ID states
 function analyzeId(id: string) {
@@ -153,7 +169,7 @@ analyzeId(deletedId); // ID State: Deleted
 ### Error Handling
 
 ```typescript
-import TTID from '@delma/ttid';
+import TTID from '@d31ma/ttid';
 
 // Invalid ID format
 try {
