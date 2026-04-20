@@ -43,7 +43,7 @@ jobs:
         run: bun run lint
 
       - name: Run tests
-        run: bun test
+        run: bun test --isolate --parallel
 
   blackbox-config:
     name: Detect blackbox configuration
