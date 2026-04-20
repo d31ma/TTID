@@ -120,4 +120,4 @@ jobs:
             bun install --frozen-lockfile
           fi
 
-          bun test ./ttid --timeout 120000
+          bun test ttid/*.test.mjs --timeout 120000
