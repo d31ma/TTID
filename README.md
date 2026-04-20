@@ -17,6 +17,22 @@ Each TTID segment contains:
 
 ## Installation
 
+Authenticate with GitHub Packages before installing:
+
+```bash
+npm login --scope=@d31ma --auth-type=legacy --registry=https://npm.pkg.github.com
+```
+
+Then add this to your user or project `.npmrc`:
+
+```ini
+@d31ma:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=YOUR_GITHUB_PAT
+```
+
+See GitHub's npm registry docs for the latest authentication details:
+https://docs.github.com/packages/using-github-packages-with-your-projects-ecosystem/configuring-npm-for-use-with-github-packages
+
 ```bash
 npm install @d31ma/ttid
 ```
