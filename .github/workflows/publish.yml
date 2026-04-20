@@ -45,8 +45,8 @@ jobs:
     outputs:
       enabled: ${{ steps.detect.outputs.enabled }}
     env:
-      BLACKBOX_REPOSITORY: ${{ vars.TTID_BLACKBOX_REPOSITORY || secrets.TTID_BLACKBOX_REPOSITORY || vars.NIGHTJAR_BLACKBOX_REPOSITORY || secrets.NIGHTJAR_BLACKBOX_REPOSITORY }}
-      BLACKBOX_SSH_KEY: ${{ secrets.TTID_BLACKBOX_SSH_KEY || secrets.NIGHTJAR_BLACKBOX_SSH_KEY }}
+      BLACKBOX_REPOSITORY: ${{ vars.TTID_BLACKBOX_REPOSITORY || secrets.TTID_BLACKBOX_REPOSITORY || vars.BLACKBOX_REPOSITORY || secrets.BLACKBOX_REPOSITORY || vars.NIGHTJAR_BLACKBOX_REPOSITORY || secrets.NIGHTJAR_BLACKBOX_REPOSITORY }}
+      BLACKBOX_SSH_KEY: ${{ secrets.TTID_BLACKBOX_SSH_KEY || secrets.BLACKBOX_SSH_KEY || secrets.NIGHTJAR_BLACKBOX_SSH_KEY }}
 
     steps:
       - id: detect
@@ -67,8 +67,8 @@ jobs:
     timeout-minutes: 20
     env:
       TTID_PACKAGE_TARBALL: /tmp/ttid-blackbox.tgz
-      BLACKBOX_REPOSITORY: ${{ vars.TTID_BLACKBOX_REPOSITORY || secrets.TTID_BLACKBOX_REPOSITORY || vars.NIGHTJAR_BLACKBOX_REPOSITORY || secrets.NIGHTJAR_BLACKBOX_REPOSITORY }}
-      BLACKBOX_SSH_KEY: ${{ secrets.TTID_BLACKBOX_SSH_KEY || secrets.NIGHTJAR_BLACKBOX_SSH_KEY }}
+      BLACKBOX_REPOSITORY: ${{ vars.TTID_BLACKBOX_REPOSITORY || secrets.TTID_BLACKBOX_REPOSITORY || vars.BLACKBOX_REPOSITORY || secrets.BLACKBOX_REPOSITORY || vars.NIGHTJAR_BLACKBOX_REPOSITORY || secrets.NIGHTJAR_BLACKBOX_REPOSITORY }}
+      BLACKBOX_SSH_KEY: ${{ secrets.TTID_BLACKBOX_SSH_KEY || secrets.BLACKBOX_SSH_KEY || secrets.NIGHTJAR_BLACKBOX_SSH_KEY }}
 
     steps:
       - name: Checkout TTID
@@ -88,11 +88,11 @@ jobs:
       - name: Require private blackbox credentials
         run: |
           if [ -z "$BLACKBOX_REPOSITORY" ]; then
-            echo "::error::Missing TTID_BLACKBOX_REPOSITORY/NIGHTJAR_BLACKBOX_REPOSITORY variable or secret"
+            echo "::error::Missing TTID_BLACKBOX_REPOSITORY, BLACKBOX_REPOSITORY, or NIGHTJAR_BLACKBOX_REPOSITORY variable or secret"
             exit 1
           fi
           if [ -z "$BLACKBOX_SSH_KEY" ]; then
-            echo "::error::Missing TTID_BLACKBOX_SSH_KEY or NIGHTJAR_BLACKBOX_SSH_KEY secret"
+            echo "::error::Missing TTID_BLACKBOX_SSH_KEY, BLACKBOX_SSH_KEY, or NIGHTJAR_BLACKBOX_SSH_KEY secret"
             exit 1
           fi
 
@@ -101,7 +101,7 @@ jobs:
         with:
           repository: ${{ env.BLACKBOX_REPOSITORY }}
           ssh-key: ${{ env.BLACKBOX_SSH_KEY }}
-          ref: ${{ vars.TTID_BLACKBOX_REF || vars.NIGHTJAR_BLACKBOX_REF || 'main' }}
+          ref: ${{ vars.TTID_BLACKBOX_REF || vars.BLACKBOX_REF || vars.NIGHTJAR_BLACKBOX_REF || 'main' }}
           path: .blackbox-tests
 
       - name: Run TTID blackbox tests
