@@ -184,10 +184,44 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  publish-npm:
+    name: Publish to npm registry
+    runs-on: ubuntu-latest
+    needs: [test, blackbox-config, package-blackbox, version]
+    if: needs.version.outputs.tag_exists == 'false' && (needs.blackbox-config.outputs.enabled == 'false' || needs.package-blackbox.result == 'success')
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    environment: packages-prod
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          scope: '@d31ma'
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
   github-release:
     name: Create GitHub release
     runs-on: ubuntu-latest
-    needs: [version, publish]
+    needs: [version, publish, publish-npm]
     if: needs.version.outputs.tag_exists == 'false'
     timeout-minutes: 10
     permissions:
