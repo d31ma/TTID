@@ -4,11 +4,11 @@ import prettierConfig from 'eslint-config-prettier'
 
 export default [
     {
-        files: ['src/**/*.ts', 'test/**/*.ts'],
+        files: ['src/**/*.js', 'test/**/*.js'],
         languageOptions: {
             parser: tsParser,
             parserOptions: {
-                project: './tsconfig.json'
+                project: './jsconfig.json'
             }
         },
         plugins: {
@@ -17,7 +17,6 @@ export default [
         rules: {
             ...tsPlugin.configs['recommended'].rules,
             '@typescript-eslint/no-explicit-any': 'error',
-            '@typescript-eslint/explicit-function-return-type': 'warn',
             '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
         }
     },

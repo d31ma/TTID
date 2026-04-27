@@ -1,4 +1,4 @@
-import TTID from "../src";
+import TTID from "../src/index.js";
 import { test, expect, describe } from 'bun:test'
 
 describe("TTID", () => {
@@ -153,7 +153,8 @@ describe("TTID", () => {
 
         test('successive calls produce unique IDs', async () => {
 
-            const ids: string[] = []
+            /** @type {string[]} */
+            const ids = []
             for (let i = 0; i < 5; i++) {
                 await Bun.sleep(1)
                 ids.push(TTID.generate())
@@ -263,8 +264,12 @@ describe("TTID", () => {
 
             const { createdAt, updatedAt, deletedAt } = TTID.decodeTime(_deletedId)
 
+            if (updatedAt === undefined || deletedAt === undefined) {
+                throw new Error('updatedAt and deletedAt should be defined for a deleted TTID')
+            }
+
             expect(updatedAt).toBeGreaterThan(createdAt)
-            expect(deletedAt).toBeGreaterThan(updatedAt!)
+            expect(deletedAt).toBeGreaterThan(updatedAt)
         })
 
         test('throws on invalid format', () => {

@@ -1,1 +1,18 @@
 node_modules
+
+# Local agent / tooling configs
+.claude/
+.codex/
+.gemini/
+
+# Graphify
+.graphify_*
+graphify-out/
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+.github/copilot-instructions.md
+
+# Untrack markdown except README
+*.md
+!README.md
