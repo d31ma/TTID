@@ -214,7 +214,7 @@ jobs:
           scope: '@d31ma'
 
       - name: Publish to npm
-        run: npm publish --access public --tag latest
+        run: rm -f .npmrc && npm publish --access public --tag latest
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
