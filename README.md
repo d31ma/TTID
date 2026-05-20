@@ -17,27 +17,83 @@ Each TTID segment contains:
 
 ## Installation
 
-Authenticate with GitHub Packages before installing:
-
-```bash
-npm login --scope=@d31ma --auth-type=legacy --registry=https://npm.pkg.github.com
-```
-
-Then add this to your user or project `.npmrc`:
-
-```ini
-@d31ma:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=YOUR_GITHUB_PAT
-```
-
-See GitHub's npm registry docs for the latest authentication details:
-https://docs.github.com/packages/using-github-packages-with-your-projects-ecosystem/configuring-npm-for-use-with-github-packages
+Public stable releases install from npm by default:
 
 ```bash
 npm install @d31ma/ttid
 ```
 
+If you are a `d31ma` member and want the private beta channel from GitHub Packages instead, configure a user-level `.npmrc`:
+
+```ini
+# ~/.npmrc
+@d31ma:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}
+always-auth=true
+```
+
+See GitHub's npm registry docs for the latest authentication details:
+https://docs.github.com/packages/using-github-packages-with-your-projects-ecosystem/configuring-npm-for-use-with-github-packages
+
+After that, the same `npm install @d31ma/ttid` command will resolve from GitHub Packages for your user.
+
 ## Usage
+
+## CLI and Binary Usage
+
+TTID exposes a `ttid` command. Every command writes structured JSON to stdout and exits non-zero on input or lifecycle errors, which makes it practical for Python, Go, Ruby, PHP, Java, shell scripts, and other runtimes to call.
+
+```sh
+ttid generate
+ttid generate 0HDE5K8S8J9
+ttid generate 0HDE5K8S8J9 --delete
+ttid decode 0HDE5K8S8J9
+ttid validate 0HDE5K8S8J9
+```
+
+For language interop, use the machine interface:
+
+```sh
+ttid exec --request '{"requestId":"new-user","op":"generate"}'
+ttid exec --request '{"requestId":"delete-user","op":"generate","id":"0HDE5K8S8J9","delete":true}'
+```
+
+Successful responses look like this:
+
+```json
+{
+  "protocolVersion": 1,
+  "ok": true,
+  "op": "generate",
+  "requestId": "new-user",
+  "durationMs": 1,
+  "result": "0HDE5K8S8J9"
+}
+```
+
+Errors use the same envelope:
+
+```json
+{
+  "protocolVersion": 1,
+  "ok": false,
+  "op": "generate",
+  "requestId": "delete-user",
+  "durationMs": 1,
+  "error": {
+    "name": "Error",
+    "message": "Invalid TTID!"
+  }
+}
+```
+
+Build a standalone executable:
+
+```sh
+bun run build:exe
+./dist-bin/ttid generate
+./dist-bin/ttid exec --request '{"op":"generate"}'
+```
 
 ### Basic ID Generation
 

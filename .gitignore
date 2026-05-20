@@ -1,4 +1,5 @@
 node_modules
+dist-bin/
 
 # Local agent / tooling configs
 .claude/
