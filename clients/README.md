@@ -17,15 +17,18 @@ file for your language and call TTID like a library.
 | Swift         | `swift/Ttid.swift`     | none (Foundation) |
 | Kotlin        | `kotlin/Ttid.kt`       | none (JDK)      |
 | Dart          | `dart/ttid.dart`       | none (stdlib)   |
+| Dart (Flutter)| `dart/ttid_native.dart`| none — no binary |
 | Web (browser) | `web/ttid.mjs`         | none — no binary |
 
-> **The web client is different.** A browser can't spawn a subprocess, so
-> `web/ttid.mjs` does **not** drive the `ttid` binary — it reimplements TTID
-> natively in pure JavaScript. It needs no binary and no install; just import it.
-> Its API mirrors the TTID library's static methods (`TTID.generate(...)`,
-> `TTID.isTTID(...)` → `Date | null`, `TTID.isUUID(...)` → `RegExpMatchArray | null`),
-> not the machine protocol below. Everything else in this document describes the
-> binary-driven clients.
+> **Two native clients are different.** A browser and Flutter on mobile/web can't
+> spawn a subprocess, so `web/ttid.mjs` (JavaScript) and `dart/ttid_native.dart`
+> (Dart/Flutter) do **not** drive the `ttid` binary — they reimplement TTID
+> natively in pure JS / pure Dart. No binary, no install; just import. Their APIs
+> mirror the TTID library's static methods (`generate`, `decodeTime`, `isTtid`
+> → date/null, `isUuid` → match/null) rather than the machine protocol below, and
+> their IDs interoperate with every other client. Use `dart/ttid.dart` (binary-
+> driven) only on a server/desktop that has the `ttid` binary. Everything else in
+> this document describes the binary-driven clients.
 
 ## Install the binary
 

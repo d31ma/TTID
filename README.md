@@ -8,7 +8,7 @@
   <a href="https://github.com/d31ma/TTID/releases/latest"><img src="https://img.shields.io/github/v/release/d31ma/TTID?label=release&color=2ea043" alt="Latest release"></a>
   <a href="https://github.com/d31ma/TTID/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/d31ma/TTID/ci.yml?branch=main&label=build" alt="Build status"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
-  <img src="https://img.shields.io/badge/clients-12-8957e5" alt="12 language clients">
+  <img src="https://img.shields.io/badge/clients-13-8957e5" alt="13 clients">
   <a href="https://github.com/d31ma/TTID/stargazers"><img src="https://img.shields.io/github/stars/d31ma/TTID?style=flat&color=e3b341" alt="GitHub stars"></a>
 </p>
 
@@ -239,9 +239,10 @@ names follow each language's own convention — `snake_case`, `camelCase`, or
 | Swift | [`clients/swift/Ttid.swift`](clients/swift/Ttid.swift) | `camelCase` |
 | Kotlin | [`clients/kotlin/Ttid.kt`](clients/kotlin/Ttid.kt) | `camelCase` |
 | Dart | [`clients/dart/ttid.dart`](clients/dart/ttid.dart) | `camelCase` |
+| Dart (Flutter) | [`clients/dart/ttid_native.dart`](clients/dart/ttid_native.dart) | native — no binary |
 | Web (browser) | [`clients/web/ttid.mjs`](clients/web/ttid.mjs) | native — no binary |
 
-> The **web client** is native pure-JS — a browser can't spawn the binary, so it reimplements TTID directly and mirrors the library's static API.
+> The **web** and **Flutter** clients are native (pure JS / pure Dart) — a browser and Flutter on mobile/web can't spawn the binary, so they reimplement TTID directly and mirror the library's static API. Their IDs still interoperate with every other client. Use `clients/dart/ttid.dart` on a server/desktop that has the binary.
 
 <details open>
 <summary><strong>Python</strong></summary>
@@ -421,6 +422,22 @@ print(await t.decodeTime(id));              // {createdAt: ..., updatedAt: ...}
 print(await t.isTtid(id));                  // {valid: true, createdAt: ...}
 print(await t.isUuid('not-a-uuid'));        // {valid: false}
 await t.close();
+```
+
+</details>
+
+<details>
+<summary><strong>Dart / Flutter</strong> (native — no binary, any platform)</summary>
+
+```dart
+import 'ttid_native.dart';
+
+final id = Ttid.generate();               // new id
+final updated = Ttid.generate(id);        // advance it
+Ttid.generate(updated, true);             // mark deleted
+Ttid.decodeTime(updated);                 // { createdAt, updatedAt } (ms)
+Ttid.isTtid(id);                          // DateTime if valid, else null
+Ttid.isUuid('not-a-uuid');                // RegExpMatch if valid, else null
 ```
 
 </details>
