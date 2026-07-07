@@ -2,7 +2,8 @@
 import {
     executeMachineOperation,
     machineErrorResponse,
-    machineSuccessResponse
+    machineSuccessResponse,
+    serveStdioLoop
 } from './machine.js';
 
 const HELP = `ttid - time-tagged identifier generator
@@ -13,10 +14,12 @@ Usage:
   ttid validate <id>
   ttid uuid <id>
   ttid exec --request <json|@path|->
+  ttid exec --loop
 
 Options:
   --delete       Mark the TTID as deleted when generating from an existing ID
   --request      Machine request payload, @file path, or - for stdin
+  --loop         Persistent NDJSON loop: one request/response per line on stdio
   -h, --help     Show this help and exit
 
 Machine request:
@@ -29,6 +32,7 @@ All commands write structured JSON to stdout.`;
  * @property {string[]} positionals
  * @property {string | undefined} request
  * @property {boolean} delete
+ * @property {boolean} loop
  * @property {boolean} help
  */
 
@@ -47,6 +51,7 @@ class CliArgsParser {
         const positionals = [];
         let request;
         let del = false;
+        let loop = false;
         let help = false;
 
         for (let index = 0; index < this.argv.length; index++) {
@@ -62,6 +67,10 @@ class CliArgsParser {
                 del = true;
                 continue;
             }
+            if (arg === '--loop') {
+                loop = true;
+                continue;
+            }
             if (arg === '--help' || arg === '-h') {
                 help = true;
                 continue;
@@ -69,7 +78,7 @@ class CliArgsParser {
             positionals.push(arg);
         }
 
-        return { positionals, request, delete: del, help };
+        return { positionals, request, delete: del, loop, help };
     }
 }
 
@@ -185,6 +194,11 @@ class TtidCliApp {
             if (args.help || args.positionals.length === 0) {
                 console.log(HELP);
                 process.exit(args.help ? 0 : 1);
+            }
+
+            if (args.positionals[0] === 'exec' && args.loop) {
+                await serveStdioLoop();
+                process.exit(0);
             }
 
             this.request = await new MachineRequestBuilder(args).build();

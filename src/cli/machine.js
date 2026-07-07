@@ -201,3 +201,45 @@ export const machineSuccessResponse = (request, startedAt, result) => {
 export const machineErrorResponse = (request, startedAt, error) => {
     return new MachineResponseFactory(request, startedAt).error(error);
 };
+
+/**
+ * Persistent NDJSON loop: read one JSON request per line from `input`, write one
+ * JSON response per line to `write`, in order. Keeps the process warm across
+ * calls so language shims pay startup once, not per operation.
+ * @param {{ input?: AsyncIterable<unknown>, write?: (line: string) => void }} [options]
+ */
+export const serveStdioLoop = async (options = {}) => {
+    const input = options.input ?? process.stdin;
+    const write = options.write ?? ((line) => process.stdout.write(line));
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    const handleLine = (/** @type {string} */ line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        const startedAt = Date.now();
+        let request;
+        try {
+            request = JSON.parse(trimmed);
+        } catch {
+            write(`${JSON.stringify(machineErrorResponse(null, startedAt, new Error('Invalid JSON request')))}\n`);
+            return;
+        }
+        try {
+            const result = executeMachineOperation(request);
+            write(`${JSON.stringify(machineSuccessResponse(request, startedAt, result))}\n`);
+        } catch (error) {
+            write(`${JSON.stringify(machineErrorResponse(request, startedAt, error))}\n`);
+        }
+    };
+
+    for await (const chunk of input) {
+        buffer += typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+        let newline;
+        while ((newline = buffer.indexOf('\n')) !== -1) {
+            handleLine(buffer.slice(0, newline));
+            buffer = buffer.slice(newline + 1);
+        }
+    }
+    handleLine(buffer);
+};

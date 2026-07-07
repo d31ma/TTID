@@ -17,13 +17,42 @@ Each TTID segment contains:
 
 ## Installation
 
-Public stable releases install from npm by default:
+TTID ships as a single self-contained `ttid` binary, published to
+[GitHub Releases](https://github.com/d31ma/TTID/releases). Any language uses it
+through a thin [client shim](clients/) — no npm, no native addon.
 
-```bash
-npm install @d31ma/ttid
+### Install the binary
+
+```sh
+# macOS / Linux
+curl -fsSL https://github.com/d31ma/TTID/releases/latest/download/install.sh | sh
 ```
 
-If you are a `d31ma` member and want the private beta channel from GitHub Packages instead, configure a user-level `.npmrc`:
+```powershell
+# Windows (PowerShell)
+irm https://github.com/d31ma/TTID/releases/latest/download/install.ps1 | iex
+```
+
+The installer downloads the right binary for your OS/arch from the latest
+release, verifies its checksum, and puts `ttid` on your PATH. Then verify:
+`ttid --help`.
+
+Prefer to do it by hand? Download the asset for your platform from the
+[latest release](https://github.com/d31ma/TTID/releases/latest) —
+`ttid-linux-x64`, `ttid-linux-arm64`, `ttid-macos-x64`, `ttid-macos-arm64`, or
+`ttid-windows-x64.exe` — `chmod +x` it, and move it onto your PATH. Checksums
+are in `SHA256SUMS`.
+
+### Use it from your language
+
+Drop the one-file client for your language into your project and call TTID like
+a library — it drives the `ttid` binary for you. See [clients/](clients/) for
+Python, Ruby, Node/TS, PHP, Go, Rust, C#, and Java.
+
+### JavaScript / TypeScript library
+
+JS/TS projects can also import the package directly from GitHub Packages instead
+of the binary. Configure a user-level `.npmrc`:
 
 ```ini
 # ~/.npmrc
@@ -32,12 +61,9 @@ If you are a `d31ma` member and want the private beta channel from GitHub Packag
 always-auth=true
 ```
 
-See GitHub's npm registry docs for the latest authentication details:
-https://docs.github.com/packages/using-github-packages-with-your-projects-ecosystem/configuring-npm-for-use-with-github-packages
-
-After that, the same `npm install @d31ma/ttid` command will resolve from GitHub Packages for your user.
-
-## Usage
+Then `bun add @d31ma/ttid` (or `npm install @d31ma/ttid`). See GitHub's
+[npm registry docs](https://docs.github.com/packages/using-github-packages-with-your-projects-ecosystem/configuring-npm-for-use-with-github-packages)
+for authentication details.
 
 ## CLI and Binary Usage
 
@@ -94,6 +120,129 @@ bun run build:exe
 ./dist-bin/ttid generate
 ./dist-bin/ttid exec --request '{"op":"generate"}'
 ```
+
+## Language Clients
+
+Any language uses TTID through a thin, dependency-free [client shim](clients/)
+that drives the `ttid` binary over a persistent stdin/stdout loop. Drop the one
+file for your language into your project and call TTID like a library. Method
+names follow each language's own convention — `snake_case`, `camelCase`, or
+`PascalCase`. Full details in [clients/README.md](clients/README.md).
+
+**Python** — [`clients/python/ttid.py`](clients/python/ttid.py)
+
+```python
+from ttid import TTID
+
+with TTID() as t:
+    id = t.generate()              # new id
+    updated = t.generate(id)       # advance it
+    deleted = t.generate(updated, delete=True)
+    print(t.decode_time(deleted))  # {"createdAt": ..., "updatedAt": ..., "deletedAt": ...}
+    print(t.is_ttid(id))           # {"valid": True, "createdAt": ...}
+    print(t.is_uuid("not-a-uuid")) # {"valid": False}
+```
+
+**Node / TypeScript** — [`clients/node/ttid.mjs`](clients/node/ttid.mjs)
+
+```js
+import { TTID } from './ttid.mjs'
+
+const t = new TTID()
+const id = await t.generate()             // new id
+const updated = await t.generate(id)      // advance it
+await t.generate(updated, true)           // mark deleted
+console.log(await t.decodeTime(updated))  // { createdAt, updatedAt }
+console.log(await t.isTTID(id))           // { valid, createdAt }
+await t.close()
+```
+
+**Ruby** — [`clients/ruby/ttid.rb`](clients/ruby/ttid.rb)
+
+```ruby
+require_relative 'ttid'
+
+TTID.open do |t|
+  id = t.generate                       # new id
+  updated = t.generate(id)              # advance it
+  t.generate(updated, delete: true)     # mark deleted
+  p t.decode_time(updated)              # {"createdAt"=>..., "updatedAt"=>...}
+  p t.is_ttid(id)                       # {"valid"=>true, "createdAt"=>...}
+end
+```
+
+**PHP** — [`clients/php/ttid.php`](clients/php/ttid.php)
+
+```php
+require 'ttid.php';
+
+$t = new TTID();
+$id = $t->generate();                 // new id
+$updated = $t->generate($id);         // advance it
+$t->generate($updated, true);         // mark deleted
+print_r($t->decodeTime($updated));    // ["createdAt" => ..., "updatedAt" => ...]
+print_r($t->isTTID($id));             // ["valid" => true, "createdAt" => ...]
+$t->close();
+```
+
+**Go** — [`clients/go/ttid.go`](clients/go/ttid.go)
+
+```go
+import "yourmodule/ttid" // copy ttid.go into a package dir
+
+t, _ := ttid.Open("ttid")
+defer t.Close()
+
+id, _ := t.Generate("", false)         // new id
+updated, _ := t.Generate(id.(string), false)
+t.Generate(updated.(string), true)     // mark deleted
+times, _ := t.DecodeTime(updated.(string))
+valid, _ := t.IsTTID(id.(string))
+fmt.Println(times, valid)
+```
+
+**Rust** — [`clients/rust/ttid.rs`](clients/rust/ttid.rs)
+
+```rust
+mod ttid;
+use ttid::Ttid;
+
+let mut t = Ttid::open("ttid")?;
+let id = t.generate(None, false)?;      // response line: {..."result":"4VL..."}
+let up = t.generate(Some("4VL..."), false)?;
+t.generate(Some("4VL..."), true)?;      // mark deleted
+let times = t.decode_time("4VL...")?;   // methods return the raw JSON response
+let valid = t.is_ttid("4VL...")?;       // line — parse with serde if you want structs
+t.close()?;
+```
+
+**C#** — [`clients/csharp/Ttid.cs`](clients/csharp/Ttid.cs)
+
+```csharp
+using var t = new Ttid.Ttid();
+string id = t.Generate().GetString();       // new id
+t.Generate(id);                             // advance it
+t.Generate(id, del: true);                  // mark deleted
+JsonElement times = t.DecodeTime(id);       // { createdAt, updatedAt? }
+JsonElement valid = t.IsTTID(id);           // { valid, createdAt }
+JsonElement uuid  = t.IsUUID("not-a-uuid"); // { valid }
+```
+
+**Java** — [`clients/java/Ttid.java`](clients/java/Ttid.java)
+
+```java
+try (Ttid t = new Ttid()) {
+    String id = t.generate();        // response line: {..."result":"4VL..."}
+    t.generate("4VL...");            // advance it
+    t.generate("4VL...", true);      // mark deleted
+    String times = t.decodeTime("4VL..."); // methods return the raw JSON
+    String valid = t.isTTID("4VL..."); // response line — parse with Jackson/Gson
+}
+```
+
+## JavaScript / TypeScript Library
+
+The `@d31ma/ttid` package can also be imported directly, with no binary:
 
 ### Basic ID Generation
 
