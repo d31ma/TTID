@@ -14,6 +14,15 @@ file for your language and call TTID like a library.
 | Rust          | `rust/ttid.rs`         | none (std)      |
 | C#            | `csharp/Ttid.cs`       | none (BCL)      |
 | Java          | `java/Ttid.java`       | none (JDK)      |
+| Web (browser) | `web/ttid.mjs`         | none — no binary |
+
+> **The web client is different.** A browser can't spawn a subprocess, so
+> `web/ttid.mjs` does **not** drive the `ttid` binary — it reimplements TTID
+> natively in pure JavaScript. It needs no binary and no install; just import it.
+> Its API mirrors the TTID library's static methods (`TTID.generate(...)`,
+> `TTID.isTTID(...)` → `Date | null`, `TTID.isUUID(...)` → `RegExpMatchArray | null`),
+> not the machine protocol below. Everything else in this document describes the
+> binary-driven clients.
 
 ## Install the binary
 
