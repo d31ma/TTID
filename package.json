@@ -33,10 +33,6 @@
     "type": "git",
     "url": "git+https://github.com/d31ma/TTID.git"
   },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "tag": "beta"
-  },
   "license": "MIT",
   "keywords": [
     "typescript",
