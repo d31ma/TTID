@@ -1,6 +1,6 @@
 {
   "name": "@d31ma/ttid",
-  "version": "26.21.03",
+  "version": "26.28.02",
   "main": "./src/index.js",
   "types": "./types/index.d.ts",
   "bin": {
