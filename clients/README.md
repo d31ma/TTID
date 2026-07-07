@@ -14,6 +14,9 @@ file for your language and call TTID like a library.
 | Rust          | `rust/ttid.rs`         | none (std)      |
 | C#            | `csharp/Ttid.cs`       | none (BCL)      |
 | Java          | `java/Ttid.java`       | none (JDK)      |
+| Swift         | `swift/Ttid.swift`     | none (Foundation) |
+| Kotlin        | `kotlin/Ttid.kt`       | none (JDK)      |
+| Dart          | `dart/ttid.dart`       | none (stdlib)   |
 | Web (browser) | `web/ttid.mjs`         | none — no binary |
 
 > **The web client is different.** A browser can't spawn a subprocess, so
@@ -35,14 +38,17 @@ binary path if you don't want it on PATH.
 
 Each shim exposes one method per operation. Method names follow **each
 language's own paradigm** — `snake_case` in Python/Ruby/Rust, `camelCase` in
-Node/PHP/Java, `PascalCase` in Go/C#:
+Node/PHP/Java/Swift/Kotlin, `PascalCase` in Go/C#:
 
-| Op         | Python / Ruby / Rust | Node / PHP / Java | Go / C#      |
-| ---------- | -------------------- | ----------------- | ------------ |
-| generate   | `generate`           | `generate`        | `Generate`   |
-| decodeTime | `decode_time`        | `decodeTime`      | `DecodeTime` |
-| isTTID     | `is_ttid`            | `isTTID`          | `IsTTID`     |
-| isUUID     | `is_uuid`            | `isUUID`          | `IsUUID`     |
+| Op         | Python / Ruby / Rust | Node / PHP / Java / Swift / Kotlin | Go / C#      |
+| ---------- | -------------------- | ---------------------------------- | ------------ |
+| generate   | `generate`           | `generate`                         | `Generate`   |
+| decodeTime | `decode_time`        | `decodeTime`                       | `DecodeTime` |
+| isTTID     | `is_ttid`            | `isTTID`                           | `IsTTID`     |
+| isUUID     | `is_uuid`            | `isUUID`                           | `IsUUID`     |
+
+Dart follows the same camelCase but writes acronyms as words — `decodeTime`,
+`isTtid`, `isUuid` — per Dart's style guide.
 
 - **`generate(id?, delete?)`** — no args mints a new TTID; passing an existing
   `id` advances it (a second segment); `id` + `delete` tombstones it (a third
