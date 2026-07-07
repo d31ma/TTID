@@ -235,6 +235,9 @@ names follow each language's own convention — `snake_case`, `camelCase`, or
 | Rust | [`clients/rust/ttid.rs`](clients/rust/ttid.rs) | `snake_case` |
 | C# | [`clients/csharp/Ttid.cs`](clients/csharp/Ttid.cs) | `PascalCase` |
 | Java | [`clients/java/Ttid.java`](clients/java/Ttid.java) | `camelCase` |
+| Web (browser) | [`clients/web/ttid.mjs`](clients/web/ttid.mjs) | native — no binary |
+
+> The **web client** is native pure-JS — a browser can't spawn the binary, so it reimplements TTID directly and mirrors the library's static API.
 
 <details open>
 <summary><strong>Python</strong></summary>
@@ -367,6 +370,22 @@ try (Ttid t = new Ttid()) {
     String times = t.decodeTime("4VL..."); // methods return the raw JSON
     String valid = t.isTTID("4VL..."); // response line — parse with Jackson/Gson
 }
+```
+
+</details>
+
+<details>
+<summary><strong>Web / browser</strong> (native — no binary)</summary>
+
+```js
+import TTID from './ttid.mjs'
+
+const id = TTID.generate()               // new id
+const updated = TTID.generate(id)        // advance it
+TTID.generate(updated, true)             // mark deleted
+TTID.decodeTime(updated)                 // { createdAt, updatedAt }
+TTID.isTTID(id)                          // Date if valid, else null
+TTID.isUUID('not-a-uuid')                // RegExpMatchArray if valid, else null
 ```
 
 </details>
