@@ -14,21 +14,25 @@ file for your language and call TTID like a library.
 | Rust          | `rust/ttid.rs`         | none (std)      |
 | C#            | `csharp/Ttid.cs`       | none (BCL)      |
 | Java          | `java/Ttid.java`       | none (JDK)      |
-| Swift         | `swift/Ttid.swift`     | none (Foundation) |
-| Kotlin        | `kotlin/Ttid.kt`       | none (JDK)      |
-| Dart          | `dart/ttid.dart`       | none (stdlib)   |
-| Dart (Flutter)| `dart/ttid_native.dart`| none — no binary |
-| Web (browser) | `web/ttid.mjs`         | none — no binary |
+| Swift         | `swift/Ttid.swift`       | none (Foundation) |
+| Swift (iOS)   | `swift/TtidNative.swift` | none — no binary |
+| Kotlin        | `kotlin/Ttid.kt`         | none (JDK)      |
+| Kotlin (Android) | `kotlin/TtidNative.kt` | none — no binary |
+| Dart          | `dart/ttid.dart`         | none (stdlib)   |
+| Dart (Flutter)| `dart/ttid_native.dart`  | none — no binary |
+| Web (browser) | `web/ttid.mjs`           | none — no binary |
 
-> **Two native clients are different.** A browser and Flutter on mobile/web can't
-> spawn a subprocess, so `web/ttid.mjs` (JavaScript) and `dart/ttid_native.dart`
-> (Dart/Flutter) do **not** drive the `ttid` binary — they reimplement TTID
-> natively in pure JS / pure Dart. No binary, no install; just import. Their APIs
-> mirror the TTID library's static methods (`generate`, `decodeTime`, `isTtid`
-> → date/null, `isUuid` → match/null) rather than the machine protocol below, and
-> their IDs interoperate with every other client. Use `dart/ttid.dart` (binary-
-> driven) only on a server/desktop that has the `ttid` binary. Everything else in
-> this document describes the binary-driven clients.
+> **The native clients are different.** A browser, iOS, Android, and Flutter on
+> mobile/web can't spawn a subprocess, so the four `*Native`/`web` clients —
+> `web/ttid.mjs` (JS), `swift/TtidNative.swift` (iOS), `kotlin/TtidNative.kt`
+> (Android), and `dart/ttid_native.dart` (Flutter) — do **not** drive the `ttid`
+> binary. They reimplement TTID natively in the host language (no binary, no
+> install; just import). Their APIs mirror the TTID library's static methods
+> (`generate`, `decodeTime`, `isTTID`/`isTtid` → date/null, `isUUID`/`isUuid`)
+> rather than the machine protocol below, and their IDs interoperate with every
+> other client. Use the binary-driven `Ttid.swift` / `Ttid.kt` / `ttid.dart` only
+> on a server/desktop that has the `ttid` binary. Everything else in this document
+> describes the binary-driven clients.
 
 ## Install the binary
 

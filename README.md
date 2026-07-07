@@ -8,7 +8,7 @@
   <a href="https://github.com/d31ma/TTID/releases/latest"><img src="https://img.shields.io/github/v/release/d31ma/TTID?label=release&color=2ea043" alt="Latest release"></a>
   <a href="https://github.com/d31ma/TTID/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/d31ma/TTID/ci.yml?branch=main&label=build" alt="Build status"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
-  <img src="https://img.shields.io/badge/clients-13-8957e5" alt="13 clients">
+  <img src="https://img.shields.io/badge/clients-15-8957e5" alt="15 clients">
   <a href="https://github.com/d31ma/TTID/stargazers"><img src="https://img.shields.io/github/stars/d31ma/TTID?style=flat&color=e3b341" alt="GitHub stars"></a>
 </p>
 
@@ -237,12 +237,14 @@ names follow each language's own convention — `snake_case`, `camelCase`, or
 | C# | [`clients/csharp/Ttid.cs`](clients/csharp/Ttid.cs) | `PascalCase` |
 | Java | [`clients/java/Ttid.java`](clients/java/Ttid.java) | `camelCase` |
 | Swift | [`clients/swift/Ttid.swift`](clients/swift/Ttid.swift) | `camelCase` |
+| Swift (iOS) | [`clients/swift/TtidNative.swift`](clients/swift/TtidNative.swift) | native — no binary |
 | Kotlin | [`clients/kotlin/Ttid.kt`](clients/kotlin/Ttid.kt) | `camelCase` |
+| Kotlin (Android) | [`clients/kotlin/TtidNative.kt`](clients/kotlin/TtidNative.kt) | native — no binary |
 | Dart | [`clients/dart/ttid.dart`](clients/dart/ttid.dart) | `camelCase` |
 | Dart (Flutter) | [`clients/dart/ttid_native.dart`](clients/dart/ttid_native.dart) | native — no binary |
 | Web (browser) | [`clients/web/ttid.mjs`](clients/web/ttid.mjs) | native — no binary |
 
-> The **web** and **Flutter** clients are native (pure JS / pure Dart) — a browser and Flutter on mobile/web can't spawn the binary, so they reimplement TTID directly and mirror the library's static API. Their IDs still interoperate with every other client. Use `clients/dart/ttid.dart` on a server/desktop that has the binary.
+> The **native** clients — Web (JS), iOS (Swift), Android (Kotlin), Flutter (Dart) — reimplement TTID directly instead of driving the binary, because browsers and mobile OSes can't spawn a subprocess. They mirror the library's static API and their IDs still interoperate with every other client. Use the binary-driven `Ttid.swift` / `Ttid.kt` / `ttid.dart` on a server/desktop that has the binary.
 
 <details open>
 <summary><strong>Python</strong></summary>
@@ -422,6 +424,34 @@ print(await t.decodeTime(id));              // {createdAt: ..., updatedAt: ...}
 print(await t.isTtid(id));                  // {valid: true, createdAt: ...}
 print(await t.isUuid('not-a-uuid'));        // {valid: false}
 await t.close();
+```
+
+</details>
+
+<details>
+<summary><strong>Swift / iOS</strong> (native — no binary)</summary>
+
+```swift
+let id = try TtidNative.generate()            // new id
+let updated = try TtidNative.generate(id)     // advance it
+_ = try TtidNative.generate(updated, delete: true) // mark deleted
+try TtidNative.decodeTime(updated)            // ["createdAt": ..., "updatedAt": ...]
+TtidNative.isTTID(id)                         // Date if valid, else nil
+TtidNative.isUUID("not-a-uuid")              // Bool
+```
+
+</details>
+
+<details>
+<summary><strong>Kotlin / Android</strong> (native — no binary)</summary>
+
+```kotlin
+val id = TtidNative.generate()               // new id
+val updated = TtidNative.generate(id)        // advance it
+TtidNative.generate(updated, true)           // mark deleted
+TtidNative.decodeTime(updated)               // {createdAt=..., updatedAt=...}
+TtidNative.isTTID(id)                         // Date if valid, else null
+TtidNative.isUUID("not-a-uuid")              // Boolean
 ```
 
 </details>
