@@ -1,19 +1,127 @@
-# TTID (Time-Tagged Identifier)
+<div align="center">
 
-A lightweight, time-based identifier generator that tracks creation, update, and deletion timestamps using a progressive format.
+<h1>TTID</h1>
+
+<p><strong>Time-Tagged Identifiers</strong> — compact IDs that carry their own <em>created</em>, <em>updated</em>, and <em>deleted</em> timestamps.</p>
+
+<p>
+  <a href="https://github.com/d31ma/TTID/releases/latest"><img src="https://img.shields.io/github/v/release/d31ma/TTID?label=release&color=2ea043" alt="Latest release"></a>
+  <a href="https://github.com/d31ma/TTID/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/d31ma/TTID/ci.yml?branch=main&label=build" alt="Build status"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/clients-8%20languages-8957e5" alt="8 language clients">
+  <a href="https://github.com/d31ma/TTID/stargazers"><img src="https://img.shields.io/github/stars/d31ma/TTID?style=flat&color=e3b341" alt="GitHub stars"></a>
+</p>
+
+<p>
+  <code>curl -fsSL https://github.com/d31ma/TTID/releases/latest/download/install.sh | sh</code>
+</p>
+
+<p>
+  <a href="#installation">Install</a> &nbsp;·&nbsp;
+  <a href="#language-clients">Clients</a> &nbsp;·&nbsp;
+  <a href="#cli-and-binary-usage">CLI</a> &nbsp;·&nbsp;
+  <a href="#api-reference">API</a> &nbsp;·&nbsp;
+  <a href="#comparison-with-other-systems">vs UUID / ULID</a>
+</p>
+
+</div>
+
+---
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+### ⏱ Time-tagged
+
+`created`, `updated`, and `deleted` timestamps are encoded right in the ID — no extra columns, no lookup.
+
+</td>
+<td width="33%" valign="top">
+
+### 🔒 Immutable end state
+
+Once deleted (three segments) an ID can never be modified again. The lifecycle is enforced, not conventional.
+
+</td>
+<td width="33%" valign="top">
+
+### 🪶 Compact & sortable
+
+Base-36, 11-character segments. Lexicographically sortable by creation time and URL-safe.
+
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+
+### 🌍 Any language
+
+Dependency-free client shims for **8 languages** drive a single `ttid` binary.
+
+</td>
+<td width="33%" valign="top">
+
+### 📦 No package manager
+
+Ship one binary from GitHub Releases. No npm, no native addons, no build step.
+
+</td>
+<td width="33%" valign="top">
+
+### 🧩 Machine-friendly
+
+Every command emits structured JSON, so any runtime can call TTID over stdio.
+
+</td>
+</tr>
+</table>
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Installation](#installation)
+- [CLI and Binary Usage](#cli-and-binary-usage)
+- [Language Clients](#language-clients)
+- [API Reference](#api-reference)
+- [Format Specification](#format-specification)
+- [Lifecycle States](#lifecycle-states)
+- [Comparison with Other Systems](#comparison-with-other-systems)
+- [Use Cases](#use-cases)
+- [Performance Considerations](#performance-considerations)
+- [Security](#security)
+- [License](#license)
+
+---
 
 ## Overview
 
-TTID creates unique identifiers with a progressive structure:
+TTID creates unique identifiers with a progressive structure — the ID grows one segment at a time as the record moves through its lifecycle:
+
 - **Created:** `[CREATION_TIMESTAMP]`
 - **Updated:** `[CREATION_TIMESTAMP]-[UPDATE_TIMESTAMP]`
 - **Deleted:** `[CREATION_TIMESTAMP]-[UPDATE_TIMESTAMP]-[DELETION_TIMESTAMP]`
 
+```mermaid
+stateDiagram-v2
+    [*] --> Created: generate()
+    Created --> Updated: generate(id)
+    Updated --> Updated: generate(id)
+    Created --> Deleted: generate(id, true)
+    Updated --> Deleted: generate(id, true)
+    Deleted --> [*]: (immutable)
+```
+
 Each TTID segment contains:
+
 - High-resolution timestamps encoded in base-36
 - Progressive expansion to track lifecycle states
 - Compact 11-character timestamps for efficiency
 - Immutable deletion state (cannot be modified once deleted)
+
+---
 
 ## Installation
 
@@ -48,6 +156,8 @@ are in `SHA256SUMS`.
 Drop the one-file client for your language into your project and call TTID like
 a library — it drives the `ttid` binary for you. See [clients/](clients/) for
 Python, Ruby, Node/TS, PHP, Go, Rust, C#, and Java.
+
+---
 
 ## CLI and Binary Usage
 
@@ -105,6 +215,8 @@ bun run build:exe
 ./dist-bin/ttid exec --request '{"op":"generate"}'
 ```
 
+---
+
 ## Language Clients
 
 Any language uses TTID through a thin, dependency-free [client shim](clients/)
@@ -113,7 +225,19 @@ file for your language into your project and call TTID like a library. Method
 names follow each language's own convention — `snake_case`, `camelCase`, or
 `PascalCase`. Full details in [clients/README.md](clients/README.md).
 
-**Python** — [`clients/python/ttid.py`](clients/python/ttid.py)
+| Language | Client file | Convention |
+| --- | --- | --- |
+| Python | [`clients/python/ttid.py`](clients/python/ttid.py) | `snake_case` |
+| Ruby | [`clients/ruby/ttid.rb`](clients/ruby/ttid.rb) | `snake_case` |
+| Node / TypeScript | [`clients/node/ttid.mjs`](clients/node/ttid.mjs) | `camelCase` |
+| PHP | [`clients/php/ttid.php`](clients/php/ttid.php) | `camelCase` |
+| Go | [`clients/go/ttid.go`](clients/go/ttid.go) | `PascalCase` |
+| Rust | [`clients/rust/ttid.rs`](clients/rust/ttid.rs) | `snake_case` |
+| C# | [`clients/csharp/Ttid.cs`](clients/csharp/Ttid.cs) | `PascalCase` |
+| Java | [`clients/java/Ttid.java`](clients/java/Ttid.java) | `camelCase` |
+
+<details open>
+<summary><strong>Python</strong></summary>
 
 ```python
 from ttid import TTID
@@ -127,7 +251,10 @@ with TTID() as t:
     print(t.is_uuid("not-a-uuid")) # {"valid": False}
 ```
 
-**Node / TypeScript** — [`clients/node/ttid.mjs`](clients/node/ttid.mjs)
+</details>
+
+<details>
+<summary><strong>Node / TypeScript</strong></summary>
 
 ```js
 import { TTID } from './ttid.mjs'
@@ -141,7 +268,10 @@ console.log(await t.isTTID(id))           // { valid, createdAt }
 await t.close()
 ```
 
-**Ruby** — [`clients/ruby/ttid.rb`](clients/ruby/ttid.rb)
+</details>
+
+<details>
+<summary><strong>Ruby</strong></summary>
 
 ```ruby
 require_relative 'ttid'
@@ -155,7 +285,10 @@ TTID.open do |t|
 end
 ```
 
-**PHP** — [`clients/php/ttid.php`](clients/php/ttid.php)
+</details>
+
+<details>
+<summary><strong>PHP</strong></summary>
 
 ```php
 require 'ttid.php';
@@ -169,7 +302,10 @@ print_r($t->isTTID($id));             // ["valid" => true, "createdAt" => ...]
 $t->close();
 ```
 
-**Go** — [`clients/go/ttid.go`](clients/go/ttid.go)
+</details>
+
+<details>
+<summary><strong>Go</strong></summary>
 
 ```go
 import "yourmodule/ttid" // copy ttid.go into a package dir
@@ -185,7 +321,10 @@ valid, _ := t.IsTTID(id.(string))
 fmt.Println(times, valid)
 ```
 
-**Rust** — [`clients/rust/ttid.rs`](clients/rust/ttid.rs)
+</details>
+
+<details>
+<summary><strong>Rust</strong></summary>
 
 ```rust
 mod ttid;
@@ -200,7 +339,10 @@ let valid = t.is_ttid("4VL...")?;       // line — parse with serde if you want
 t.close()?;
 ```
 
-**C#** — [`clients/csharp/Ttid.cs`](clients/csharp/Ttid.cs)
+</details>
+
+<details>
+<summary><strong>C#</strong></summary>
 
 ```csharp
 using var t = new Ttid.Ttid();
@@ -212,7 +354,10 @@ JsonElement valid = t.IsTTID(id);           // { valid, createdAt }
 JsonElement uuid  = t.IsUUID("not-a-uuid"); // { valid }
 ```
 
-**Java** — [`clients/java/Ttid.java`](clients/java/Ttid.java)
+</details>
+
+<details>
+<summary><strong>Java</strong></summary>
 
 ```java
 try (Ttid t = new Ttid()) {
@@ -223,6 +368,10 @@ try (Ttid t = new Ttid()) {
     String valid = t.isTTID("4VL..."); // response line — parse with Jackson/Gson
 }
 ```
+
+</details>
+
+---
 
 ## API Reference
 
@@ -241,7 +390,7 @@ Generates a new TTID or updates an existing one.
 - Valid TTID provided: Updates to `[CREATED]-[NEW_TIMESTAMP]`
 - Valid TTID + `del=true`: Marks as deleted `[CREATED]-[UPDATED]-[DELETED_TIMESTAMP]`
 
-**Throws:** 
+**Throws:**
 - Error if provided ID is invalid
 - Error if attempting to modify a deleted ID (3 segments)
 
@@ -266,7 +415,7 @@ Validates a TTID and returns creation date if valid.
 **Parameters:**
 - `id` - A string to validate
 
-**Returns:** 
+**Returns:**
 - `Date` object (creation date) if valid
 - `null` if invalid
 
@@ -278,6 +427,8 @@ Checks if a string is a valid UUID.
 - `id` - A string to check
 
 **Returns:** `RegExpMatchArray | null` - Match result or null
+
+---
 
 ## Format Specification
 
@@ -296,6 +447,8 @@ TTIDs follow a strict format:
 - Placeholder 'X' may appear in update position for certain states
 - Deleted IDs cannot be modified further
 
+---
+
 ## Lifecycle States
 
 | State | Format | Segments | Modifiable |
@@ -304,9 +457,11 @@ TTIDs follow a strict format:
 | Updated | `CREATED-UPDATED` | 2 | ✅ |
 | Deleted | `CREATED-UPDATED-DELETED` | 3 | ❌ |
 
+---
+
 ## Comparison with Other Systems
 
-| Feature | TTID | UUID | ULID | 
+| Feature | TTID | UUID | ULID |
 |---------|------|------|------|
 | Progressive states | ✅ | ❌ | ❌ |
 | Soft delete tracking | ✅ | ❌ | ❌ |
@@ -314,6 +469,8 @@ TTIDs follow a strict format:
 | Compact encoding | ✅ | ❌ | ✅ |
 | Time-based | ✅ | ⚠️ | ✅ |
 | Fixed length | ❌ | ✅ | ✅ |
+
+---
 
 ## Use Cases
 
@@ -323,12 +480,16 @@ TTIDs follow a strict format:
 - **API Resources**: RESTful endpoints with state-aware identifiers
 - **Event Sourcing**: Compact event identifiers with temporal information
 
+---
+
 ## Performance Considerations
 
 - Base-36 encoding provides compact representation
 - Progressive format minimizes storage for simple states
 - High-resolution timestamps ensure uniqueness in high-frequency scenarios
 - Validation includes timestamp parsing for integrity checking
+
+---
 
 ## Security
 
@@ -345,6 +506,12 @@ if (!valid) throw new Error('Invalid identifier')
 
 Input length is bounded to 36 characters before any regex evaluation, preventing CPU exhaustion from pathological inputs.
 
+---
+
 ## License
 
-MIT
+Released under the [MIT License](https://opensource.org/licenses/MIT).
+
+<div align="center">
+<sub>Built with <a href="https://bun.sh">Bun</a> · Distributed as a single binary via <a href="https://github.com/d31ma/TTID/releases">GitHub Releases</a></sub>
+</div>
