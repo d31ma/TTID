@@ -8,7 +8,7 @@
   <a href="https://github.com/d31ma/TTID/releases/latest"><img src="https://img.shields.io/github/v/release/d31ma/TTID?label=release&color=2ea043" alt="Latest release"></a>
   <a href="https://github.com/d31ma/TTID/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/d31ma/TTID/ci.yml?branch=main&label=build" alt="Build status"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
-  <img src="https://img.shields.io/badge/clients-8%20languages-8957e5" alt="8 language clients">
+  <img src="https://img.shields.io/badge/clients-12-8957e5" alt="12 language clients">
   <a href="https://github.com/d31ma/TTID/stargazers"><img src="https://img.shields.io/github/stars/d31ma/TTID?style=flat&color=e3b341" alt="GitHub stars"></a>
 </p>
 
@@ -57,7 +57,7 @@ Base-36, 11-character segments. Lexicographically sortable by creation time and 
 
 ### 🌍 Any language
 
-Dependency-free client shims for **8 languages** drive a single `ttid` binary.
+Dependency-free client shims for **11 languages** drive a single `ttid` binary.
 
 </td>
 <td width="33%" valign="top">
@@ -155,7 +155,8 @@ are in `SHA256SUMS`.
 
 Drop the one-file client for your language into your project and call TTID like
 a library — it drives the `ttid` binary for you. See [clients/](clients/) for
-Python, Ruby, Node/TS, PHP, Go, Rust, C#, and Java.
+Python, Ruby, Node/TS, PHP, Go, Rust, C#, Java, Swift, Kotlin, Dart, and the
+browser.
 
 ---
 
@@ -235,6 +236,9 @@ names follow each language's own convention — `snake_case`, `camelCase`, or
 | Rust | [`clients/rust/ttid.rs`](clients/rust/ttid.rs) | `snake_case` |
 | C# | [`clients/csharp/Ttid.cs`](clients/csharp/Ttid.cs) | `PascalCase` |
 | Java | [`clients/java/Ttid.java`](clients/java/Ttid.java) | `camelCase` |
+| Swift | [`clients/swift/Ttid.swift`](clients/swift/Ttid.swift) | `camelCase` |
+| Kotlin | [`clients/kotlin/Ttid.kt`](clients/kotlin/Ttid.kt) | `camelCase` |
+| Dart | [`clients/dart/ttid.dart`](clients/dart/ttid.dart) | `camelCase` |
 | Web (browser) | [`clients/web/ttid.mjs`](clients/web/ttid.mjs) | native — no binary |
 
 > The **web client** is native pure-JS — a browser can't spawn the binary, so it reimplements TTID directly and mirrors the library's static API.
@@ -370,6 +374,53 @@ try (Ttid t = new Ttid()) {
     String times = t.decodeTime("4VL..."); // methods return the raw JSON
     String valid = t.isTTID("4VL..."); // response line — parse with Jackson/Gson
 }
+```
+
+</details>
+
+<details>
+<summary><strong>Swift</strong></summary>
+
+```swift
+let t = try Ttid()
+let id = try t.generate() as! String    // new id
+_ = try t.generate(id)                   // advance it
+_ = try t.generate(id, delete: true)     // mark deleted
+let times = try t.decodeTime(id)         // ["createdAt": ..., "updatedAt": ...]
+let valid = try t.isTTID(id)             // ["valid": true, "createdAt": ...]
+let uuid = try t.isUUID("not-a-uuid")    // ["valid": false]
+t.close()
+```
+
+</details>
+
+<details>
+<summary><strong>Kotlin</strong></summary>
+
+```kotlin
+Ttid().use { t ->
+    val id = t.generate()        // response line: {..."result":"4VL..."}
+    t.generate("4VL...")         // advance it
+    t.generate("4VL...", true)   // mark deleted
+    val times = t.decodeTime("4VL...") // methods return the raw JSON
+    val valid = t.isTTID("4VL...")     // response line — parse with kotlinx/Gson
+}
+```
+
+</details>
+
+<details>
+<summary><strong>Dart</strong></summary>
+
+```dart
+final t = await Ttid.open();
+final id = await t.generate() as String;   // new id
+await t.generate(id);                       // advance it
+await t.generate(id, true);                 // mark deleted
+print(await t.decodeTime(id));              // {createdAt: ..., updatedAt: ...}
+print(await t.isTtid(id));                  // {valid: true, createdAt: ...}
+print(await t.isUuid('not-a-uuid'));        // {valid: false}
+await t.close();
 ```
 
 </details>
