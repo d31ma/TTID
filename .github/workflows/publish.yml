@@ -271,6 +271,12 @@ jobs:
     permissions:
       contents: write
 
+    # This job never checks the repo out, so `gh` has no git remote to infer the
+    # repository from and fails with "not a git repository". GH_REPO supplies it
+    # without paying for a checkout.
+    env:
+      GH_REPO: ${{ github.repository }}
+
     steps:
       - uses: actions/download-artifact@v4
         with:
