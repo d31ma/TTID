@@ -57,6 +57,14 @@ jobs:
       - name: Tests
         run: bun run rust:test
 
+      # deny.toml has been configured all along but nothing ran it, so
+      # advisories and license drift went unchecked. This is that gate.
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@cargo-deny
+
+      - name: Advisories, bans, licenses, sources
+        run: bun run rust:deny
+
   # The wasm artifact: identical answers, and small enough to ship.
   wasm:
     name: WebAssembly
@@ -110,6 +118,34 @@ jobs:
 
       - name: Lint
         run: bun run lint
+
+  # The installers are how most users get the binary, so their checksum gate is
+  # release-critical and must keep failing closed.
+  installers:
+    # Named explicitly so the check context stays stable for branch protection;
+    # a bare matrix job name would expand to include every matrix value.
+    name: Installers (${{ matrix.label }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            label: sh
+            script: sh test/install.sh
+          - runner: windows-latest
+            label: pwsh
+            script: pwsh -NoProfile -File test/install.ps1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Test installer
+        shell: bash
+        run: ${{ matrix.script }}
 
   # The contract with everything that calls TTID. Slow: Kotlin and C# compile.
   surface:

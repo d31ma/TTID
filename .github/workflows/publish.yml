@@ -49,6 +49,11 @@ jobs:
           bun test ./test/
           bun run typecheck
 
+      # install.sh and install.ps1 ship as release assets; the checksum gate has
+      # to hold before anything is published. The ps1 half runs in CI on Windows.
+      - name: Installer
+        run: sh test/install.sh
+
   version:
     name: Read version
     runs-on: ubuntu-latest

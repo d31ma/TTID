@@ -146,6 +146,27 @@ The installer downloads the right binary for your OS/arch from the latest
 release, verifies its checksum, and puts `ttid` on your PATH. Then verify:
 `ttid --help`.
 
+Checksum verification **fails closed**: if the checksum does not match, or
+`SHA256SUMS` cannot be fetched, or no hashing tool is available, the install
+aborts and nothing is written to your PATH.
+
+Two environment variables control the installers:
+
+| Variable | Effect |
+| --- | --- |
+| `TTID_VERSION` | Install a specific release instead of the latest. Accepts `26.28.02` or `v26.28.02`. This is the rollback path. |
+| `TTID_SKIP_CHECKSUM` | Set to `1` to install without verifying the checksum. Only for systems with no `sha256sum`/`shasum`. |
+
+```sh
+# Pin a version — e.g. to roll back
+TTID_VERSION=26.28.02 curl -fsSL https://github.com/d31ma/TTID/releases/latest/download/install.sh | sh
+```
+
+```powershell
+# Windows
+$env:TTID_VERSION = '26.28.02'; irm https://github.com/d31ma/TTID/releases/latest/download/install.ps1 | iex
+```
+
 Prefer to do it by hand? Download the asset for your platform from the
 [latest release](https://github.com/d31ma/TTID/releases/latest) —
 `ttid-linux-x64`, `ttid-linux-arm64`, `ttid-macos-x64`, `ttid-macos-arm64`, or
@@ -651,7 +672,12 @@ TTIDs follow a strict format:
   and ids stay strictly increasing — verified against a *frozen* clock, which is
   the worst case any host can present.
 - The guarantee is per process. Two processes generating concurrently can still
-  collide, the same limit ULID's monotonic factory has.
+  collide, the same limit ULID's monotonic factory has. This is not a rare edge:
+  eight processes bursting at once measured ~14% duplicates across the combined
+  set, while each process on its own stayed perfectly unique and ordered. One
+  long-lived generator per application is the supported shape — if you need ids
+  from several processes at once, give each one its own namespace or draw them
+  from a single generator.
 
 ---
 
