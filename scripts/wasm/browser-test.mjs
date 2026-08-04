@@ -14,6 +14,7 @@
 // can load a URL is a sufficient driver.
 
 import { readFile, mkdtemp, rm } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -195,13 +196,16 @@ const BROWSERS = [
 ]
 
 function findBrowser() {
+    // GitHub runners export this; honouring it beats guessing at paths.
+    if (process.env.CHROME_PATH && existsSync(process.env.CHROME_PATH)) {
+        return process.env.CHROME_PATH
+    }
     for (const candidate of BROWSERS) {
+        // `Bun.file()` reports size 0 for a path that does not exist rather
+        // than throwing, so an existence check is the only reliable test --
+        // `size >= 0` matched every candidate and always picked the first.
         if (candidate.startsWith('/')) {
-            try {
-                if (Bun.file(candidate).size >= 0) return candidate
-            } catch {
-                /* not here */
-            }
+            if (existsSync(candidate)) return candidate
         } else if (Bun.which(candidate)) {
             return candidate
         }
