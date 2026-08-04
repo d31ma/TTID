@@ -105,6 +105,19 @@ export async function load(source = new URL('./ttid.wasm', import.meta.url)) {
         return valid ? new Date(createdAt) : null
     }
 
+    /**
+     * The canonical (uppercase) spelling of a valid TTID, or null.
+     * @type {(id: string) => string | null}
+     */
+    const canonical = (id) => {
+        if (typeof id !== 'string' || id.length === 0) return null
+        try {
+            return request({ op: 'canonicalize', id })
+        } catch {
+            return null
+        }
+    }
+
     /** @type {(id: string) => boolean} */
     const isUUID = (id) => {
         if (typeof id !== 'string' || id.length === 0) return false
@@ -116,6 +129,7 @@ export async function load(source = new URL('./ttid.wasm', import.meta.url)) {
         decodeTime,
         isTTID,
         isUUID,
+        canonical,
         abiVersion,
         /** Escape hatch: send a raw machine-protocol request. */
         request

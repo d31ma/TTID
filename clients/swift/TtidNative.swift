@@ -80,6 +80,15 @@ enum TtidNative {
         return Date(timeIntervalSince1970: Double(created) / 1000.0)
     }
 
+    /// The canonical (uppercase) spelling of a valid TTID, or `nil`.
+    ///
+    /// Identifiers are matched case-insensitively but only ever emitted in
+    /// uppercase, so string equality is not identity unless you normalize.
+    /// Feed this any accepted spelling and store what it returns.
+    static func canonical(_ id: String) -> String? {
+        isTTID(id) == nil ? nil : id.uppercased()
+    }
+
     /// Validate a UUID (any version or variant).
     static func isUUID(_ id: String) -> Bool {
         matches(uuidRegex, id)

@@ -148,6 +148,11 @@ fn dispatch(
                 created_at,
             }))
         }
+        "canonicalize" => {
+            let id = require_string(request, "id")?;
+            let canonical = ttid::canonical(id).ok_or_else(|| "Invalid TTID!".to_owned())?;
+            Ok(Value::String(canonical))
+        }
         "isUUID" => {
             let id = require_string(request, "id")?;
             Ok(to_json(&UuidResult {

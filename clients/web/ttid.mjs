@@ -97,6 +97,19 @@ export function isTTID(_id) {
 }
 
 /**
+ * The canonical (uppercase) spelling of a valid TTID, or `null`.
+ *
+ * Identifiers are matched case-insensitively but only ever emitted in
+ * uppercase, so string equality is not identity unless you normalize.
+ * Feed this any accepted spelling and store what it returns.
+ * @param {string} _id
+ * @returns {string | null}
+ */
+export function canonical(_id) {
+    return isTTID(_id) === null ? null : _id.toUpperCase();
+}
+
+/**
  * Validate a UUID (any version or variant).
  * @param {string} _id
  * @returns {RegExpMatchArray | null}
@@ -142,4 +155,5 @@ export default class TTID {
     static decodeTime = decodeTime;
     static isTTID = isTTID;
     static isUUID = isUUID;
+    static canonical = canonical;
 }

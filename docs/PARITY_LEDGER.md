@@ -150,6 +150,44 @@ application.
 Both transports call the same `machine::execute_line`, so this is identity by
 construction rather than by coincidence. The probe exists to keep it that way.
 
+## Canonical form (issue #32)
+
+Identifiers are matched case-insensitively but only ever emitted in uppercase,
+so `2^n` spellings of an `n`-letter id all validate and all decode to the same
+instant. String equality was therefore not identity — a portability hazard for
+anything that persists or sorts by identifier, and the behaviour is unchanged
+all the way back to v26.28.02, so it is not a rewrite regression.
+
+Added in 26.32.03, additive and non-breaking:
+
+| Behavior | Status | Evidence |
+| --- | --- | --- |
+| `canonical` / `ttid canonicalize` returns the uppercase spelling | `rust-only` | `invariants::canonical_is_uppercase_for_every_accepted_spelling` |
+| Idempotent | `rust-only` | `invariants::canonical_is_idempotent` |
+| Normalizing preserves the decoded instant | `rust-only` | `invariants::canonical_preserves_the_decoded_instant` |
+| Restores chronological byte-order sorting | `rust-only` | `invariants::canonicalizing_restores_chronological_sort_order` |
+| Rejects anything that is not a valid TTID | `rust-only` | `invariants::canonical_rejects_what_is_not_a_ttid` |
+| Available in all four native clients | `identical` | `test/canonical.test.js`; Swift, Kotlin and Dart compile-checked |
+
+`canonical` is **deliberately lenient** in what it accepts, and stays that way
+even after validation tightens. It is the repair path for identifiers already
+stored in a non-canonical spelling; a strict `canonicalize` would reject exactly
+the input it exists to fix.
+
+**Planned, not yet done.** A future major release will make `isTTID` and
+`decodeTime` accept only the canonical form. That is a breaking change and needs
+to land together with:
+
+- the four native reimplementations (`clients/web/ttid.mjs`,
+  `TtidNative.swift`, `TtidNative.kt`, `ttid_native.dart`), which each carry
+  their own case-insensitive pattern;
+- three frozen corpus cases (`generate: lowercase input is accepted and
+  uppercased`, `decodeTime: lowercase is accepted`, `isTTID: lowercase is
+  valid`), re-recorded as a stated divergence from the retired oracle rather
+  than silently regenerated;
+- `invariants::lowercase_input_is_accepted_and_normalized`, which asserts the
+  current leniency.
+
 ## Recorded divergences
 
 | Behavior | Status | Reachable? | Notes |

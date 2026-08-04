@@ -19,6 +19,7 @@ Usage:
   ttid generate [id] [--delete]
   ttid decode <id>
   ttid validate <id>
+  ttid canonicalize <id>
   ttid uuid <id>
   ttid exec --request <json|@path|->
   ttid exec --loop
@@ -151,6 +152,7 @@ fn build_request(args: &Args) -> Result<Value, String> {
         }
         Some("decode") => with_id("decodeTime", id, "decode"),
         Some("validate") => with_id("isTTID", id, "validate"),
+        Some("canonicalize") => with_id("canonicalize", id, "canonicalize"),
         Some("uuid") => with_id("isUUID", id, "uuid"),
         other => Err(format!(
             r#"Unsupported command "{}""#,

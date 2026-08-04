@@ -192,6 +192,7 @@ ttid generate 0HDE5K8S8J9
 ttid generate 0HDE5K8S8J9 --delete
 ttid decode 0HDE5K8S8J9
 ttid validate 0HDE5K8S8J9
+ttid canonicalize 0hde5k8s8j9
 ```
 
 For language interop, use the machine interface:
@@ -596,6 +597,44 @@ Validates a TTID and returns creation date if valid.
 **Returns:**
 - `Date` object (creation date) if valid
 - `null` if invalid
+
+### `TTID.canonical(id: string)`
+
+Returns the canonical (uppercase) spelling of a valid TTID, or `null`.
+
+```js
+TTID.canonical('4vu8c11iu00')   // "4VU8C11IU00"
+TTID.canonical('4VU8C11IU00')   // "4VU8C11IU00"  (idempotent)
+TTID.canonical('not-a-ttid')    // null
+```
+
+```sh
+ttid canonicalize 4vu8c11iu00
+```
+
+**Normalize before you store or compare.** Identifiers are matched
+case-insensitively but only ever *emitted* in uppercase, so a consumer that
+keeps whatever spelling it was handed can treat one identifier as several — an
+id with five letters has 32 accepted spellings that all decode to the same
+instant. Three places this bites:
+
+- **Equality.** `'4vu8c11iu00' !== '4VU8C11IU00'` as strings, though they are
+  the same identifier.
+- **Sorting.** TTIDs are time-ordered by byte comparison, and lowercase sorts
+  after uppercase in ASCII, so a mixed-case corpus does not sort
+  chronologically.
+- **Storage keyed by identifier.** On a case-insensitive filesystem the two
+  spellings collide; on a case-sensitive one they produce two records. Same
+  writes, different outcome per host.
+
+`canonical` is deliberately lenient in what it accepts — that is the point,
+since rejecting non-canonical input would leave anyone who has already stored
+some with no way to repair it.
+
+> **Planned change.** A future major release will make `isTTID` and `decodeTime`
+> accept only the canonical form, so string equality becomes identity. Normalize
+> your stored identifiers now and that release is a no-op for you.
+> ([#32](https://github.com/d31ma/TTID/issues/32))
 
 ### `TTID.isUUID(id: string)`
 
