@@ -140,10 +140,25 @@ try {
   }
   note('frozen clock: ' + frozenBurst.size + '/2000 unique', frozenBurst.size === 2000)
 
-  // 6. A burst must not shift the decoded timestamp meaningfully.
-  const drift = TTID.decodeTime(wasmList[wasmList.length - 1]).createdAt -
-                TTID.decodeTime(wasmList[0]).createdAt
-  note('burst drifts the decoded timestamp by ' + drift + 'ms', drift <= 50)
+  // 6. The monotonic fallback must not shift the decoded timestamp. Measured on
+  //    the frozen clock, because against a live clock this difference is
+  //    dominated by however long the loop actually took to run -- on a loaded
+  //    CI runner that is tens of ms of real elapsed time, which is a correct
+  //    reading, not drift. Freezing the clock leaves only the synthetic
+  //    "last + 1" advance, which is the property being claimed: 2000 ids move
+  //    the encoded time by ~200us, far under the millisecond decode rounds to.
+  const frozenList = [...frozenBurst]
+  const frozenDrift = TTID.decodeTime(frozenList[frozenList.length - 1]).createdAt -
+                      TTID.decodeTime(frozenList[0]).createdAt
+  note('a frozen-clock burst does not move the decoded timestamp (' + frozenDrift + 'ms)',
+       frozenDrift === 0)
+
+  // A live-clock burst may legitimately span real time; it must only stay
+  // ordered and sane, so this is a loose ceiling rather than a timing assertion.
+  const liveDrift = TTID.decodeTime(wasmList[wasmList.length - 1]).createdAt -
+                    TTID.decodeTime(wasmList[0]).createdAt
+  note('live burst stays ordered and within a second (' + liveDrift + 'ms)',
+       liveDrift >= 0 && liveDrift < 1000)
 
   summary.textContent = failures.length === 0
     ? 'PASS — ' + detail.children.length + ' checks'
