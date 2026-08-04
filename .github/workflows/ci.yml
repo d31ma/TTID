@@ -80,6 +80,12 @@ jobs:
         with:
           bun-version: latest
 
+      # Installs the pinned channel *and* the wasm32 target declared in
+      # rust-toolchain.toml. Building without this fails with "can't find crate
+      # for `std`", because cargo alone does not add a missing target.
+      - name: Show toolchain
+        run: rustup show
+
       - name: Cache cargo
         uses: actions/cache@v4
         with:
@@ -161,6 +167,9 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Show toolchain
+        run: rustup show
 
       - name: Cache cargo
         uses: actions/cache@v4

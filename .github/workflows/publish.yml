@@ -27,6 +27,11 @@ jobs:
         with:
           bun-version: latest
 
+      # Installs the pinned channel *and* the wasm32 target declared in
+      # rust-toolchain.toml; the wasm build below cannot add a missing target.
+      - name: Show toolchain
+        run: rustup show
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -230,6 +235,11 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      # This job builds the shipped artifact, so the wasm32 target from
+      # rust-toolchain.toml has to be installed before cargo runs.
+      - name: Show toolchain
+        run: rustup show
 
       - name: Build the wasm kernel
         run: bun run build:wasm
