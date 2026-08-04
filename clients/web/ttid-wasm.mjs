@@ -20,6 +20,18 @@
 
 const EXPECTED_ABI_VERSION = 1
 
+/**
+ * The module's exports. `WebAssembly.Instance['exports']` is an index signature
+ * of `any`, so naming the shape here is what makes the calls below checkable.
+ * @typedef {object} WasmExports
+ * @property {WebAssembly.Memory} memory
+ * @property {() => number} ttid_abi_version
+ * @property {() => void} ttid_reset
+ * @property {(length: number) => number} ttid_allocate
+ * @property {(pointer: number, length: number) => void} ttid_deallocate
+ * @property {(pointer: number, length: number, nowMs: number, durationMs: number) => bigint} ttid_execute
+ */
+
 /** Current high-resolution time in ms. Sub-millisecond precision is required:
  *  `Date.now()` alone would collide under rapid generation. */
 function nowMs() {
@@ -35,8 +47,10 @@ function nowMs() {
  */
 export async function load(source = new URL('./ttid.wasm', import.meta.url)) {
     const instance = await instantiate(source)
-    const { memory, ttid_abi_version, ttid_allocate, ttid_deallocate, ttid_execute } =
-        instance.exports
+    const exports = /** @type {WasmExports} */ (
+        /** @type {unknown} */ (instance.exports)
+    )
+    const { memory, ttid_abi_version, ttid_allocate, ttid_deallocate, ttid_execute } = exports
 
     const abiVersion = ttid_abi_version()
     if (abiVersion !== EXPECTED_ABI_VERSION) {
@@ -48,7 +62,11 @@ export async function load(source = new URL('./ttid.wasm', import.meta.url)) {
     const encoder = new TextEncoder()
     const decoder = new TextDecoder()
 
-    /** Send one machine-protocol request and return the parsed response. */
+    /**
+     * Send one machine-protocol request and return the parsed response.
+     * @param {Record<string, unknown>} payload
+     * @returns {any}
+     */
     function request(payload) {
         const bytes = encoder.encode(JSON.stringify(payload))
         const inPointer = ttid_allocate(bytes.length)
@@ -71,11 +89,14 @@ export async function load(source = new URL('./ttid.wasm', import.meta.url)) {
         return response.result
     }
 
+    /** @type {(id?: string, del?: boolean) => string} */
     const generate = (id, del = false) =>
         request({ op: 'generate', ...(id ? { id } : {}), ...(del ? { delete: true } : {}) })
 
+    /** @type {(id: string) => { createdAt: number, updatedAt?: number, deletedAt?: number }} */
     const decodeTime = (id) => request({ op: 'decodeTime', id })
 
+    /** @type {(id: string) => Date | null} */
     const isTTID = (id) => {
         // The kernel reports validity rather than throwing, matching `isTTID`'s
         // null-on-invalid contract.
@@ -84,6 +105,7 @@ export async function load(source = new URL('./ttid.wasm', import.meta.url)) {
         return valid ? new Date(createdAt) : null
     }
 
+    /** @type {(id: string) => boolean} */
     const isUUID = (id) => {
         if (typeof id !== 'string' || id.length === 0) return false
         return request({ op: 'isUUID', id }).valid
@@ -100,12 +122,21 @@ export async function load(source = new URL('./ttid.wasm', import.meta.url)) {
     })
 }
 
+/**
+ * @param {string | URL | Response | ArrayBuffer | ArrayBufferView | WebAssembly.Module} source
+ * @returns {Promise<WebAssembly.Instance>}
+ */
 async function instantiate(source) {
     if (source instanceof WebAssembly.Module) {
-        return WebAssembly.instantiate(source, {})
+        return await WebAssembly.instantiate(source, {})
     }
     if (source instanceof ArrayBuffer || ArrayBuffer.isView(source)) {
-        return (await WebAssembly.instantiate(source, {})).instance
+        // Compile first rather than calling the two-argument bytes overload:
+        // `instantiate` is overloaded on its first parameter and resolves to
+        // the `Module` form here, which returns a bare Instance. Compiling
+        // makes the intent unambiguous and costs nothing.
+        const module = await WebAssembly.compile(/** @type {BufferSource} */ (source))
+        return await WebAssembly.instantiate(module, {})
     }
     const response = source instanceof Response ? source : await fetch(source)
     if (!response.ok) {
