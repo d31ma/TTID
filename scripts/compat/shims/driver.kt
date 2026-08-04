@@ -13,6 +13,7 @@ fun main() {
         println("isTTID-bad=" + t.isTTID("nope"))
         println("isUUID=" + t.isUUID("3f2504e0-4f89-41d3-9a0c-0305e82c3301"))
         println("isUUID-bad=" + t.isUUID("nope"))
+        println("canonical=" + t.canonicalize(FIXED.lowercase()))
         try {
             t.generate(DELETED)
             println("error=NO ERROR RAISED")

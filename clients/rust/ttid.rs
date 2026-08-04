@@ -86,6 +86,11 @@ impl Ttid {
         self.checked(format!(r#"{{"op":"isTTID","id":"{}"}}"#, esc(id)))
     }
 
+    /// Canonical (uppercase) spelling of a valid TTID. Normalize before storing or comparing.
+    pub fn canonicalize(&mut self, id: &str) -> std::io::Result<String> {
+        self.checked(format!(r#"{{"op":"canonicalize","id":"{}"}}"#, esc(id)))
+    }
+
     pub fn is_uuid(&mut self, id: &str) -> std::io::Result<String> {
         self.checked(format!(r#"{{"op":"isUUID","id":"{}"}}"#, esc(id)))
     }

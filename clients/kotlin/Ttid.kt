@@ -56,6 +56,9 @@ class Ttid(binary: String = "ttid") : AutoCloseable {
 
     fun decodeTime(id: String): String = op("decodeTime", "id" to id)
     fun isTTID(id: String): String = op("isTTID", "id" to id)
+    /** Canonical (uppercase) spelling of a valid TTID. Normalize before storing or comparing. */
+    fun canonicalize(id: String): String = op("canonicalize", "id" to id)
+
     fun isUUID(id: String): String = op("isUUID", "id" to id)
 
     override fun close() {

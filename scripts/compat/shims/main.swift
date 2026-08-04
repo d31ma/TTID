@@ -24,6 +24,7 @@ print("isTTID=" + render(try t.isTTID(fixed)))
 print("isTTID-bad=" + render(try t.isTTID("nope")))
 print("isUUID=" + render(try t.isUUID("3f2504e0-4f89-41d3-9a0c-0305e82c3301")))
 print("isUUID-bad=" + render(try t.isUUID("nope")))
+print("canonical=" + render(try t.canonicalize(fixed.lowercased())))
 do {
     _ = try t.generate(deletedId)
     print("error=NO ERROR RAISED")

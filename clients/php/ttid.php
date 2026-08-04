@@ -64,6 +64,12 @@ class TTID
         return $this->op('isTTID', ['id' => $id]);
     }
 
+    /** Canonical (uppercase) spelling of a valid TTID. Normalize before storing or comparing. */
+    public function canonicalize(string $id)
+    {
+        return $this->op('canonicalize', ['id' => $id]);
+    }
+
     public function isUUID(string $id)
     {
         return $this->op('isUUID', ['id' => $id]);

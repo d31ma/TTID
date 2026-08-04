@@ -15,6 +15,7 @@ $out[] = ['isTTID', $t->isTTID($FIXED)];
 $out[] = ['isTTID-bad', $t->isTTID('nope')];
 $out[] = ['isUUID', $t->isUUID('3f2504e0-4f89-41d3-9a0c-0305e82c3301')];
 $out[] = ['isUUID-bad', $t->isUUID('nope')];
+$out[] = ['canonical', $t->canonicalize(strtolower($FIXED))];
 try {
     $t->generate($DELETED);
     $out[] = ['error', 'NO ERROR RAISED'];

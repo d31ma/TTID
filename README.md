@@ -631,6 +631,10 @@ instant. Three places this bites:
 since rejecting non-canonical input would leave anyone who has already stored
 some with no way to repair it.
 
+Available everywhere: every [client](#language-clients) exposes it under its own
+naming convention — `canonicalize` in most, `Canonicalize` in Go and C#, and
+`canonical` in the four native clients that mirror the static API.
+
 > **Planned change.** A future major release will make `isTTID` and `decodeTime`
 > accept only the canonical form, so string equality becomes identity. Normalize
 > your stored identifiers now and that release is a no-op for you.

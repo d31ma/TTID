@@ -20,6 +20,7 @@ internal static class Program
         Console.WriteLine("isTTID-bad=" + t.IsTTID("nope").GetRawText());
         Console.WriteLine("isUUID=" + t.IsUUID("3f2504e0-4f89-41d3-9a0c-0305e82c3301").GetRawText());
         Console.WriteLine("isUUID-bad=" + t.IsUUID("nope").GetRawText());
+        Console.WriteLine("canonical=" + t.Canonicalize(Fixed.ToLowerInvariant()).GetRawText());
         try
         {
             t.Generate(Deleted);

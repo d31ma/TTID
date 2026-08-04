@@ -87,6 +87,11 @@ public final class Ttid implements AutoCloseable {
         return op("isTTID", "id", id);
     }
 
+    /** Canonical (uppercase) spelling of a valid TTID. Normalize before storing or comparing. */
+    public String canonicalize(String id) throws IOException {
+        return op("canonicalize", "id", id);
+    }
+
     public String isUUID(String id) throws IOException {
         return op("isUUID", "id", id);
     }
