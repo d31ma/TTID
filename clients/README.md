@@ -65,7 +65,7 @@ Dart follows the same camelCase but writes acronyms as words — `decodeTime`,
 - **`isUUID(id)`** — `{ valid }`.
 
 For anything else, use the raw `request(op)` escape hatch — see `ttid --help`
-and `src/cli/machine.js`.
+and `src/machine.rs`.
 
 ## How it works
 

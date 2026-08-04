@@ -25,9 +25,33 @@ const MAX_TIMESTAMP_MS = 7_258_118_400_000; // 2200-01-01T00:00:00.000Z
 const TTID_PATTERN = /^[A-Z0-9]{11}(-[A-Z0-9]{1,11}){0,2}$/i;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Current high-resolution timestamp, scaled to preserve sub-ms precision. */
+let lastScaled = 0;
+
+/**
+ * The next double strictly greater than `value`. Adding 1 is not enough: at the
+ * current epoch the ulp is already 2, so `value + 1` rounds back to `value`.
+ */
+function nextRepresentable(/** @type {number} */ value) {
+    let step = 1;
+    while (value + step === value) step *= 2;
+    return value + step;
+}
+
+/**
+ * Current high-resolution timestamp, scaled to preserve sub-ms precision, and
+ * guaranteed to be strictly greater than the previous one.
+ *
+ * Browsers clamp `performance.now()` to roughly 100 microseconds as a Spectre
+ * mitigation, and the encoding's own resolution is 200 nanoseconds, so the raw
+ * clock repeats under any burst — 135 unique ids per 2000 calls, measured. When
+ * the clock has moved on this returns exactly what it reports; otherwise it
+ * steps one representable unit forward, which is far below the millisecond
+ * `decodeTime` rounds to.
+ */
 function timeNow() {
-    return (performance.now() + performance.timeOrigin) * PRECISION;
+    const now = (performance.now() + performance.timeOrigin) * PRECISION;
+    lastScaled = now > lastScaled ? now : nextRepresentable(lastScaled);
+    return lastScaled;
 }
 
 /**
@@ -41,7 +65,7 @@ export function decodeTime(_id) {
 
     const [created, updated, deleted] = _id.split('-');
 
-    const convertToMilliseconds = (timeCode) => {
+    const convertToMilliseconds = (/** @type {string} */ timeCode) => {
         const ms = Number((parseInt(timeCode, BASE) / PRECISION).toFixed(0));
         if (!isFinite(ms) || ms < MIN_TIMESTAMP_MS || ms > MAX_TIMESTAMP_MS) {
             throw new Error('Invalid timestamp encoding');
@@ -49,6 +73,7 @@ export function decodeTime(_id) {
         return ms;
     };
 
+    /** @type {{ createdAt: number, updatedAt?: number, deletedAt?: number }} */
     const timestamps = { createdAt: convertToMilliseconds(created) };
     if (updated && updated !== PLACEHOLDER) timestamps.updatedAt = convertToMilliseconds(updated);
     if (deleted) timestamps.deletedAt = convertToMilliseconds(deleted);

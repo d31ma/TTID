@@ -16,7 +16,7 @@ jobs:
   test:
     name: Test before publish
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -27,14 +27,37 @@ jobs:
         with:
           bun-version: latest
 
+      # Installs the pinned channel *and* the wasm32 target declared in
+      # rust-toolchain.toml; the wasm build below cannot add a missing target.
+      - name: Show toolchain
+        run: rustup show
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Type check
-        run: bun run typecheck
+      - name: Rust tests
+        run: bun run rust:test
 
-      - name: Run tests
-        run: bun test ./test/
+      - name: Wasm parity and budget
+        run: |
+          bun run build:wasm
+          bun scripts/wasm/abi-probe.mjs
+          bun scripts/wasm/size-budget.mjs
+
+      - name: CLI surface
+        run: |
+          bun scripts/run-rust.mjs cargo build
+          bun scripts/compat/cli-differential.mjs
+
+      - name: Web client tests and typecheck
+        run: |
+          bun test ./test/
+          bun run typecheck
+
+      # install.sh and install.ps1 ship as release assets; the checksum gate has
+      # to hold before anything is published. The ps1 half runs in CI on Windows.
+      - name: Installer
+        run: sh test/install.sh
 
   version:
     name: Read version
@@ -93,42 +116,188 @@ jobs:
           git tag -a "v$VERSION" -m "v$VERSION"
           git push origin "v$VERSION"
 
-      - name: Create GitHub release
+      # Created as a draft and published only once every asset is attached.
+      # `install.sh` fetches SHA256SUMS and the binary together; a visible
+      # release missing either would hand users a broken install.
+      - name: Create the draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           gh release create "v$VERSION" \
             --title "v$VERSION" \
-            --generate-notes
+            --generate-notes \
+            --draft
+
+      # `install.sh` and `install.ps1` are the only assets this job attaches;
+      # the binaries come from the Rust jobs below.
+      - name: Upload the installers
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          gh release upload "v$VERSION" \
+            scripts/install.sh scripts/install.ps1 \
+            --clobber
+
+  # --- The shipped binaries -----------------------------------------------
+  # These carry the `ttid-*` names that `install.sh` resolves. The JavaScript
+  # engine has been retired, so there is no second line of artifacts.
+  # See docs/RUST_REWRITE_PLAN.md.
+
+  rust-binaries:
+    name: ttid (${{ matrix.artifact }})
+    needs: [test, version]
+    if: needs.version.outputs.tag_exists == 'false'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # musl gives fully static Linux binaries — no glibc version to match.
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            artifact: ttid-linux-x64
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            artifact: ttid-linux-arm64
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+            artifact: ttid-macos-arm64
+          # Xcode carries both SDKs, so the x64 slice cross-builds here.
+          - runner: macos-latest
+            target: x86_64-apple-darwin
+            artifact: ttid-macos-x64
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: ttid-windows-x64.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install the musl linker
+        if: endsWith(matrix.target, '-musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      # rust-toolchain.toml pins the channel; this only adds the cross target.
+      - name: Add the target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --locked --bin ttid --target ${{ matrix.target }}
+
+      # A binary that cannot answer is not a release candidate.
+      - name: Smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN="target/${{ matrix.target }}/release/ttid"
+          if [ -f "$BIN.exe" ]; then BIN="$BIN.exe"; fi
+          # Cross-built slices cannot run on this host; only check what can.
+          if "$BIN" --help > /dev/null 2>&1; then
+            "$BIN" generate | grep -q '"ok": true'
+            "$BIN" decode "$("$BIN" generate | sed -n 's/.*"result": "\(.*\)"/\1/p')" | grep -q createdAt
+            echo "smoke test passed"
+          else
+            echo "cross-built for ${{ matrix.target }}; not executable on this runner"
+          fi
+
+      - name: Stage the artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist-bin
+          SRC="target/${{ matrix.target }}/release/ttid"
+          if [ -f "$SRC.exe" ]; then SRC="$SRC.exe"; fi
+          cp "$SRC" "dist-bin/${{ matrix.artifact }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist-bin/${{ matrix.artifact }}
+          retention-days: 1
+
+  rust-wasm:
+    name: ttid (wasm)
+    needs: [test, version]
+    if: needs.version.outputs.tag_exists == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - name: Build cross-platform binaries
+      # This job builds the shipped artifact, so the wasm32 target from
+      # rust-toolchain.toml has to be installed before cargo runs.
+      - name: Show toolchain
+        run: rustup show
+
+      - name: Build the wasm kernel
+        run: bun run build:wasm
+
+      # The module is only worth shipping if it answers identically to the
+      # oracle, so the parity probe gates the upload.
+      - name: Wasm parity
+        run: bun scripts/wasm/abi-probe.mjs
+
+      - name: Stage the artifact
         run: |
           set -euo pipefail
           mkdir -p dist-bin
-          build() {
-            echo "::group::$2"
-            bun build --compile --target="$1" ./src/cli/index.js --outfile "dist-bin/$2"
-            echo "::endgroup::"
-          }
-          build bun-linux-x64     ttid-linux-x64
-          build bun-linux-arm64   ttid-linux-arm64
-          build bun-darwin-x64    ttid-macos-x64
-          build bun-darwin-arm64  ttid-macos-arm64
-          build bun-windows-x64   ttid-windows-x64.exe
-          cd dist-bin && sha256sum ttid-* > SHA256SUMS
+          cp target/wasm32-unknown-unknown/release/ttid.wasm dist-bin/ttid.wasm
+          cp clients/web/ttid-wasm.mjs dist-bin/ttid-wasm.mjs
 
-      - name: Upload binaries and installers to release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ttid-wasm
+          path: dist-bin/
+          retention-days: 1
+
+  rust-publish:
+    name: Attach the ttid binaries to the release
+    needs: [version, github-release, rust-binaries, rust-wasm]
+    if: needs.version.outputs.tag_exists == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: staged
+
+      - name: Collect and checksum
+        run: |
+          set -euo pipefail
+          mkdir -p dist-bin
+          find staged -type f -exec cp {} dist-bin/ \;
+          cd dist-bin && sha256sum ttid-* ttid.wasm > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Upload to the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           gh release upload "v$VERSION" \
-            dist-bin/ttid-* dist-bin/SHA256SUMS \
-            scripts/install.sh scripts/install.ps1 \
+            dist-bin/ttid-linux-* dist-bin/ttid-macos-* dist-bin/ttid-windows-* \
+            dist-bin/ttid.wasm dist-bin/ttid-wasm.mjs \
+            dist-bin/SHA256SUMS \
             --clobber
+
+      # Everything is attached; make the release visible.
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: gh release edit "v$VERSION" --draft=false

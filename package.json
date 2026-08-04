@@ -1,22 +1,32 @@
 {
   "name": "@d31ma/ttid",
-  "version": "26.28.02",
-  "main": "./src/index.js",
+  "version": "26.32.02",
   "types": "./types/index.d.ts",
-  "bin": {
-    "ttid": "./src/cli/index.js"
-  },
   "files": [
-    "src/",
+    "clients/web/",
     "types/",
     "README.md"
   ],
   "scripts": {
-    "test": "bun test",
+    "test": "bun test ./test/",
     "typecheck": "tsc --noEmit -p jsconfig.json",
-    "build:exe": "mkdir -p ./dist-bin && bun build --compile ./src/cli/index.js --outfile ./dist-bin/ttid",
-    "lint": "eslint src test",
-    "format": "prettier --write src test"
+    "lint": "eslint clients/web scripts test",
+    "format": "prettier --write clients scripts test",
+    "rust:fmt": "bun scripts/run-rust.mjs cargo fmt --all --check",
+    "rust:clippy": "bun scripts/run-rust.mjs cargo clippy --all-targets --all-features -- -D warnings",
+    "rust:clippy:wasm": "bun scripts/run-rust.mjs cargo clippy --lib --target wasm32-unknown-unknown -- -D warnings",
+    "rust:test": "bun scripts/run-rust.mjs cargo test",
+    "rust:deny": "bun scripts/run-rust.mjs cargo deny check",
+    "build:wasm": "bun scripts/run-rust.mjs cargo build --lib --release --target wasm32-unknown-unknown",
+    "wasm:probe": "bun run build:wasm && bun scripts/wasm/abi-probe.mjs",
+    "test:cli": "bun scripts/run-rust.mjs cargo build && bun scripts/compat/cli-differential.mjs",
+    "test:shims": "bun scripts/run-rust.mjs cargo build && bun scripts/compat/shim-differential.mjs",
+    "test:browser": "bun run build:wasm && bun scripts/wasm/browser-test.mjs --headless",
+    "rust:verify": "bun run rust:fmt && bun run rust:clippy && bun run rust:clippy:wasm && bun run rust:test && bun run wasm:probe && bun scripts/wasm/size-budget.mjs && bun run test:cli && bun scripts/compat/shim-differential.mjs && bun scripts/wasm/browser-test.mjs --headless && bun test ./test/",
+    "wasm:size": "bun run build:wasm && bun scripts/wasm/size-budget.mjs",
+    "test:browser:serve": "bun run build:wasm && bun scripts/wasm/browser-test.mjs",
+    "shims:record": "bun scripts/run-rust.mjs cargo build && bun scripts/compat/shim-differential.mjs --update",
+    "cli:record": "bun scripts/run-rust.mjs cargo build && bun scripts/compat/cli-differential.mjs --update"
   },
   "devDependencies": {
     "@types/bun": "^1.2.10",
@@ -43,5 +53,6 @@
   "author": "Chidelma",
   "bugs": {
     "url": "https://github.com/d31ma/TTID/issues"
-  }
+  },
+  "description": "Time-tagged identifiers \u2014 a Rust engine shipped as a binary and a WebAssembly module"
 }

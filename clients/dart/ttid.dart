@@ -30,15 +30,21 @@ class TtidException implements Exception {
 class Ttid {
   final Process _proc;
   final StreamIterator<String> _lines;
+  final StreamSubscription<List<int>> _stderr;
 
-  Ttid._(this._proc, this._lines);
+  Ttid._(this._proc, this._lines, this._stderr);
 
   /// Start a warm ttid process. [binary] defaults to "ttid".
   static Future<Ttid> open([String binary = 'ttid']) async {
     final proc = await Process.start(binary, ['exec', '--loop']);
     final lines = StreamIterator(
         proc.stdout.transform(utf8.decoder).transform(const LineSplitter()));
-    return Ttid._(proc, lines);
+    // `Process.start` pipes all three streams and Dart offers no per-stream
+    // mode, so stderr has to be handled here or it goes nowhere. Forwarding it
+    // matches the other clients, which inherit the parent's stderr, and stops a
+    // chatty child from filling the pipe buffer and blocking on a write.
+    final stderrSubscription = proc.stderr.listen(stderr.add);
+    return Ttid._(proc, lines, stderrSubscription);
   }
 
   /// Send one raw machine-protocol op; return the full response map.
@@ -73,9 +79,21 @@ class Ttid {
   Future<dynamic> isTtid(String id) => _op('isTTID', {'id': id});
   Future<dynamic> isUuid(String id) => _op('isUUID', {'id': id});
 
-  /// Close stdin so the loop ends, and wait for the process to exit.
+  /// Close stdin so the loop ends, wait for the process to exit, and release
+  /// both pipes.
+  ///
+  /// **`_lines.cancel()` is load-bearing.** A `StreamIterator` holds a live
+  /// subscription on the child's stdout, and that subscription keeps the Dart
+  /// event loop running after `main` returns — a program using this client and
+  /// spawned without a TTY would never exit. Verified by removing each cancel
+  /// in turn: dropping this one reproduces the hang, dropping the stderr one
+  /// does not.
+  ///
+  /// Safe to call more than once.
   Future<void> close() async {
     await _proc.stdin.close();
     await _proc.exitCode;
+    await _lines.cancel();
+    await _stderr.cancel();
   }
 }

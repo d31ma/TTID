@@ -1,0 +1,46 @@
+[package]
+name = "ttid"
+# Cargo requires semver; TTID releases are CalVer. package.json stays the
+# source of truth for the released version, as in FYLO and TACHYON.
+version = "0.0.0-rewrite"
+edition = "2024"
+rust-version = "1.97.1"
+license = "MIT"
+repository = "https://github.com/d31ma/TTID"
+description = "Time-tagged identifiers — compact IDs carrying their own created, updated, and deleted timestamps"
+publish = false
+
+# One source, two artifacts. `--bin ttid` builds the native transport;
+# `--lib --target wasm32-unknown-unknown` builds the cdylib for wasm hosts.
+[lib]
+name = "ttid"
+crate-type = ["rlib", "cdylib"]
+
+# The `ttid` binary arrives in Phase 4; cargo picks up src/main.rs on sight.
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+# `preserve_order` is load-bearing: JSON.stringify emits keys in insertion
+# order, and the machine protocol's response shape is contract.
+serde_json = { version = "1.0.151", features = ["preserve_order"] }
+
+[lints.rust]
+unsafe_code = "deny" # not `forbid`: src/wasm.rs opts back in per-function
+missing_docs = "deny"
+unused_must_use = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+dbg_macro = "deny"
+expect_used = "deny"
+todo = "deny"
+unimplemented = "deny"
+unwrap_used = "deny"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+panic = "abort"
+strip = true
