@@ -1,0 +1,603 @@
+{
+  "$comment": "Golden corpus generated from the JavaScript oracle. Do not hand-edit — regenerate with scripts/compat/generate-corpus.mjs.",
+  "oracle": "javascript",
+  "protocolVersion": 1,
+  "precision": 10000,
+  "fixedWallClockMs": 1700000000000,
+  "cases": {
+    "generate": [
+      {
+        "name": "new id at a representative present time",
+        "nowMs": 1754179200000,
+        "id": null,
+        "delete": false,
+        "expect": "4SQ1NZT5HC0",
+        "error": null
+      },
+      {
+        "name": "update an existing id",
+        "nowMs": 1754179200001,
+        "id": "4SQ1NZT5HC0",
+        "delete": false,
+        "expect": "4SQ1NZT5HC0-4SQ1NZT5P1S",
+        "error": null
+      },
+      {
+        "name": "delete an updated id",
+        "nowMs": 1754179200002,
+        "id": "4SQ1NZT5HC0-4SQ1NZT5P1S",
+        "delete": true,
+        "expect": "4SQ1NZT5HC0-4SQ1NZT5P1S-4SQ1NZT5WRK",
+        "error": null
+      },
+      {
+        "name": "new id for the placeholder path",
+        "nowMs": 1754179200003,
+        "id": null,
+        "delete": false,
+        "expect": "4SQ1NZT64HC",
+        "error": null
+      },
+      {
+        "name": "delete without a prior update yields the X placeholder",
+        "nowMs": 1754179200004,
+        "id": "4SQ1NZT64HC",
+        "delete": true,
+        "expect": "4SQ1NZT64HC-X-4SQ1NZT6C74",
+        "error": null
+      },
+      {
+        "name": "an already-deleted id can never be modified",
+        "nowMs": 1754179200005,
+        "id": "4SQ1NZT64HC-X-4SQ1NZT6C74",
+        "delete": false,
+        "expect": null,
+        "error": "This identifier can no longer be modified"
+      },
+      {
+        "name": "an already-deleted id cannot be deleted again",
+        "nowMs": 1754179200006,
+        "id": "4SQ1NZT64HC-X-4SQ1NZT6C74",
+        "delete": true,
+        "expect": null,
+        "error": "This identifier can no longer be modified"
+      },
+      {
+        "name": "a non-TTID input is rejected",
+        "nowMs": 1754179200000,
+        "id": "not-a-ttid",
+        "delete": false,
+        "expect": null,
+        "error": "Invalid TTID!"
+      },
+      {
+        "name": "an empty string falls through to creating a new id",
+        "nowMs": 1754179200000,
+        "id": "",
+        "delete": false,
+        "expect": "4SQ1NZT5HC0",
+        "error": null
+      },
+      {
+        "name": "lowercase input is accepted and uppercased",
+        "nowMs": 1754179200007,
+        "id": "4sq1nzt5hc0",
+        "delete": false,
+        "expect": "4SQ1NZT5HC0-4SQ1NZT6ZCG",
+        "error": null
+      },
+      {
+        "name": "the 2020-01-01 lower bound",
+        "nowMs": 1577836800000,
+        "id": null,
+        "delete": false,
+        "expect": "4BCYQ6XT6O0",
+        "error": null
+      },
+      {
+        "name": "the 2200-01-01 upper bound",
+        "nowMs": 7258118400000,
+        "id": null,
+        "delete": false,
+        "expect": "JUNVRMAYO00",
+        "error": null
+      },
+      {
+        "name": "sub-millisecond precision is preserved",
+        "nowMs": 1754179200000.1233,
+        "id": null,
+        "delete": false,
+        "expect": "4SQ1NZT5IA8",
+        "error": null
+      },
+      {
+        "name": "two ids 0.1ms apart do not collide",
+        "nowMs": 1754179200000.2468,
+        "id": null,
+        "delete": false,
+        "expect": "4SQ1NZT5J8K",
+        "error": null
+      },
+      {
+        "name": "below the lower bound — generate does not range-check",
+        "nowMs": 1577836799000,
+        "id": null,
+        "delete": false,
+        "expect": "4BCYQ6RUUM8",
+        "error": null
+      },
+      {
+        "name": "above the upper bound — generate does not range-check",
+        "nowMs": 7258118401000,
+        "id": null,
+        "delete": false,
+        "expect": "JUNVRMGX01S",
+        "error": null
+      }
+    ],
+    "decodeTime": [
+      {
+        "name": "one segment",
+        "id": "4SQ1NZT5HC0",
+        "expect": {
+          "createdAt": 1754179200000
+        },
+        "error": null
+      },
+      {
+        "name": "two segments",
+        "id": "4SQ1NZT5HC0-4SQ1NZT5P1S",
+        "expect": {
+          "createdAt": 1754179200000,
+          "updatedAt": 1754179200001
+        },
+        "error": null
+      },
+      {
+        "name": "three segments",
+        "id": "4SQ1NZT5HC0-4SQ1NZT5P1S-4SQ1NZT5WRK",
+        "expect": {
+          "createdAt": 1754179200000,
+          "updatedAt": 1754179200001,
+          "deletedAt": 1754179200002
+        },
+        "error": null
+      },
+      {
+        "name": "the X placeholder is skipped, not decoded",
+        "id": "4SQ1NZT64HC-X-4SQ1NZT6C74",
+        "expect": {
+          "createdAt": 1754179200003,
+          "deletedAt": 1754179200004
+        },
+        "error": null
+      },
+      {
+        "name": "lowercase is accepted",
+        "id": "4sq1nzt5hc0",
+        "expect": {
+          "createdAt": 1754179200000
+        },
+        "error": null
+      },
+      {
+        "name": "the lower bound decodes",
+        "id": "4BCYQ6XT6O0",
+        "expect": {
+          "createdAt": 1577836800000
+        },
+        "error": null
+      },
+      {
+        "name": "the upper bound decodes",
+        "id": "JUNVRMAYO00",
+        "expect": {
+          "createdAt": 7258118400000
+        },
+        "error": null
+      },
+      {
+        "name": "below the lower bound is rejected",
+        "id": "4BCYQ6RUUM8",
+        "expect": null,
+        "error": "Invalid timestamp encoding"
+      },
+      {
+        "name": "above the upper bound is rejected",
+        "id": "JUNVRMGX01S",
+        "expect": null,
+        "error": "Invalid timestamp encoding"
+      },
+      {
+        "name": "malformed input is rejected",
+        "id": "not-a-ttid",
+        "expect": null,
+        "error": "Invalid Format!"
+      },
+      {
+        "name": "a ten-character first segment is rejected",
+        "id": "ABCDEFGHIJ",
+        "expect": null,
+        "error": "Invalid Format!"
+      },
+      {
+        "name": "a twelve-character first segment is rejected",
+        "id": "ABCDEFGHIJKL",
+        "expect": null,
+        "error": "Invalid Format!"
+      },
+      {
+        "name": "four segments are rejected",
+        "id": "4SQ1NZT5HC0-4SQ1NZT5HC0-4SQ1NZT5HC0-4SQ1NZT5HC0",
+        "expect": null,
+        "error": "Invalid Format!"
+      },
+      {
+        "name": "an empty string is rejected",
+        "id": "",
+        "expect": null,
+        "error": "Invalid Format!"
+      },
+      {
+        "name": "a lone separator is rejected",
+        "id": "-",
+        "expect": null,
+        "error": "Invalid Format!"
+      },
+      {
+        "name": "non-alphanumeric characters are rejected",
+        "id": "ABCDEFGHIJ!",
+        "expect": null,
+        "error": "Invalid Format!"
+      },
+      {
+        "name": "zero decodes below the lower bound",
+        "id": "00000000000",
+        "expect": null,
+        "error": "Invalid timestamp encoding"
+      }
+    ],
+    "isTTID": [
+      {
+        "name": "a valid new id",
+        "id": "4SQ1NZT5HC0",
+        "expect": 1754179200000
+      },
+      {
+        "name": "a valid updated id",
+        "id": "4SQ1NZT5HC0-4SQ1NZT5P1S",
+        "expect": 1754179200000
+      },
+      {
+        "name": "a valid deleted id",
+        "id": "4SQ1NZT64HC-X-4SQ1NZT6C74",
+        "expect": 1754179200003
+      },
+      {
+        "name": "lowercase is valid",
+        "id": "4sq1nzt5hc0",
+        "expect": 1754179200000
+      },
+      {
+        "name": "malformed input is not",
+        "id": "not-a-ttid",
+        "expect": null
+      },
+      {
+        "name": "an empty string is not",
+        "id": "",
+        "expect": null
+      },
+      {
+        "name": "an out-of-range encoding is not",
+        "id": "4BCYQ6RUUM8",
+        "expect": null
+      },
+      {
+        "name": "a 37-character string short-circuits on length",
+        "id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "expect": null
+      },
+      {
+        "name": "a 36-character string still runs the pattern",
+        "id": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "expect": null
+      }
+    ],
+    "isUUID": [
+      {
+        "name": "a v4 uuid",
+        "id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+        "expect": true
+      },
+      {
+        "name": "an uppercase uuid",
+        "id": "3F2504E0-4F89-41D3-9A0C-0305E82C3301",
+        "expect": true
+      },
+      {
+        "name": "the nil uuid",
+        "id": "00000000-0000-0000-0000-000000000000",
+        "expect": true
+      },
+      {
+        "name": "a ttid is not a uuid",
+        "id": "4SQ1NZT5HC0",
+        "expect": false
+      },
+      {
+        "name": "a truncated uuid is not",
+        "id": "3f2504e0-4f89-41d3-9a0c-0305e82c330",
+        "expect": false
+      },
+      {
+        "name": "a uuid with a trailing character is not",
+        "id": "3f2504e0-4f89-41d3-9a0c-0305e82c33011",
+        "expect": false
+      },
+      {
+        "name": "an empty string is not",
+        "id": "",
+        "expect": false
+      }
+    ],
+    "machine": [
+      {
+        "name": "generate a new id",
+        "request": {
+          "op": "generate"
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":true,\"op\":\"generate\",\"requestId\":null,\"durationMs\":0,\"result\":\"4SQ1NZT5HC0\"}"
+      },
+      {
+        "name": "generate with a request id",
+        "request": {
+          "op": "generate",
+          "requestId": "req-1"
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":true,\"op\":\"generate\",\"requestId\":\"req-1\",\"durationMs\":0,\"result\":\"4SQ1NZT5HC0\"}"
+      },
+      {
+        "name": "update an existing id",
+        "request": {
+          "op": "generate",
+          "id": "4SQ1NZT5HC0"
+        },
+        "nowMs": 1754179200001,
+        "response": "{\"protocolVersion\":1,\"ok\":true,\"op\":\"generate\",\"requestId\":null,\"durationMs\":0,\"result\":\"4SQ1NZT5HC0-4SQ1NZT5P1S\"}"
+      },
+      {
+        "name": "delete an existing id",
+        "request": {
+          "op": "generate",
+          "id": "4SQ1NZT5HC0",
+          "delete": true
+        },
+        "nowMs": 1754179200002,
+        "response": "{\"protocolVersion\":1,\"ok\":true,\"op\":\"generate\",\"requestId\":null,\"durationMs\":0,\"result\":\"4SQ1NZT5HC0-X-4SQ1NZT5WRK\"}"
+      },
+      {
+        "name": "delete: false is not a delete",
+        "request": {
+          "op": "generate",
+          "id": "4SQ1NZT5HC0",
+          "delete": false
+        },
+        "nowMs": 1754179200001,
+        "response": "{\"protocolVersion\":1,\"ok\":true,\"op\":\"generate\",\"requestId\":null,\"durationMs\":0,\"result\":\"4SQ1NZT5HC0-4SQ1NZT5P1S\"}"
+      },
+      {
+        "name": "generate rejects an already-deleted id",
+        "request": {
+          "op": "generate",
+          "id": "4SQ1NZT64HC-X-4SQ1NZT6C74"
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":\"generate\",\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"This identifier can no longer be modified\"}}"
+      },
+      {
+        "name": "decode an id",
+        "request": {
+          "op": "decodeTime",
+          "id": "4SQ1NZT5HC0-4SQ1NZT5P1S"
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":true,\"op\":\"decodeTime\",\"requestId\":null,\"durationMs\":0,\"result\":{\"createdAt\":1754179200000,\"updatedAt\":1754179200001}}"
+      },
+      {
+        "name": "decode rejects a malformed id",
+        "request": {
+          "op": "decodeTime",
+          "id": "nope"
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":\"decodeTime\",\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"Invalid Format!\"}}"
+      },
+      {
+        "name": "decode requires a non-empty id",
+        "request": {
+          "op": "decodeTime",
+          "id": ""
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":\"decodeTime\",\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"Machine request field \\\"id\\\" must be a non-empty string\"}}"
+      },
+      {
+        "name": "decode requires the id field",
+        "request": {
+          "op": "decodeTime"
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":\"decodeTime\",\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"Machine request field \\\"id\\\" must be a non-empty string\"}}"
+      },
+      {
+        "name": "decode rejects a non-string id",
+        "request": {
+          "op": "decodeTime",
+          "id": 42
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":\"decodeTime\",\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"Machine request field \\\"id\\\" must be a non-empty string\"}}"
+      },
+      {
+        "name": "validate a valid id",
+        "request": {
+          "op": "isTTID",
+          "id": "4SQ1NZT5HC0"
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":true,\"op\":\"isTTID\",\"requestId\":null,\"durationMs\":0,\"result\":{\"valid\":true,\"createdAt\":1754179200000}}"
+      },
+      {
+        "name": "validate an invalid id",
+        "request": {
+          "op": "isTTID",
+          "id": "nope"
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":true,\"op\":\"isTTID\",\"requestId\":null,\"durationMs\":0,\"result\":{\"valid\":false,\"createdAt\":null}}"
+      },
+      {
+        "name": "check a valid uuid",
+        "request": {
+          "op": "isUUID",
+          "id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":true,\"op\":\"isUUID\",\"requestId\":null,\"durationMs\":0,\"result\":{\"valid\":true}}"
+      },
+      {
+        "name": "check an invalid uuid",
+        "request": {
+          "op": "isUUID",
+          "id": "nope"
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":true,\"op\":\"isUUID\",\"requestId\":null,\"durationMs\":0,\"result\":{\"valid\":false}}"
+      },
+      {
+        "name": "generate treats a null id as absent",
+        "request": {
+          "op": "generate",
+          "id": null
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":true,\"op\":\"generate\",\"requestId\":null,\"durationMs\":0,\"result\":\"4SQ1NZT5HC0\"}"
+      },
+      {
+        "name": "generate treats a zero id as absent",
+        "request": {
+          "op": "generate",
+          "id": 0
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":true,\"op\":\"generate\",\"requestId\":null,\"durationMs\":0,\"result\":\"4SQ1NZT5HC0\"}"
+      },
+      {
+        "name": "generate treats a false id as absent",
+        "request": {
+          "op": "generate",
+          "id": false
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":true,\"op\":\"generate\",\"requestId\":null,\"durationMs\":0,\"result\":\"4SQ1NZT5HC0\"}"
+      },
+      {
+        "name": "generate treats an empty-string id as absent",
+        "request": {
+          "op": "generate",
+          "id": ""
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":true,\"op\":\"generate\",\"requestId\":null,\"durationMs\":0,\"result\":\"4SQ1NZT5HC0\"}"
+      },
+      {
+        "name": "generate coerces a numeric id",
+        "request": {
+          "op": "generate",
+          "id": 42
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":\"generate\",\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"Invalid TTID!\"}}"
+      },
+      {
+        "name": "generate coerces an 11-digit numeric id",
+        "request": {
+          "op": "generate",
+          "id": 12345678901
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":\"generate\",\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"Invalid TTID!\"}}"
+      },
+      {
+        "name": "generate coerces a true id",
+        "request": {
+          "op": "generate",
+          "id": true
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":\"generate\",\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"Invalid TTID!\"}}"
+      },
+      {
+        "name": "generate coerces an object id",
+        "request": {
+          "op": "generate",
+          "id": {}
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":\"generate\",\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"Invalid TTID!\"}}"
+      },
+      {
+        "name": "generate coerces an array id",
+        "request": {
+          "op": "generate",
+          "id": []
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":\"generate\",\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"Invalid TTID!\"}}"
+      },
+      {
+        "name": "an unknown op is rejected",
+        "request": {
+          "op": "nope"
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":\"nope\",\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"Unsupported machine operation \\\"nope\\\"\"}}"
+      },
+      {
+        "name": "a missing op is rejected",
+        "request": {},
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":null,\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"Machine request field \\\"op\\\" must be a string\"}}"
+      },
+      {
+        "name": "a non-string op is rejected",
+        "request": {
+          "op": 7
+        },
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":null,\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"Machine request field \\\"op\\\" must be a string\"}}"
+      },
+      {
+        "name": "a non-object request is rejected",
+        "request": "plain string",
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":null,\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"Machine request body must be a JSON object\"}}"
+      },
+      {
+        "name": "a null request is rejected",
+        "request": null,
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":null,\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"Machine request body must be a JSON object\"}}"
+      },
+      {
+        "name": "an array request is rejected",
+        "request": [],
+        "nowMs": 1754179200000,
+        "response": "{\"protocolVersion\":1,\"ok\":false,\"op\":null,\"requestId\":null,\"durationMs\":0,\"error\":{\"name\":\"Error\",\"message\":\"Machine request body must be a JSON object\"}}"
+      }
+    ]
+  }
+}

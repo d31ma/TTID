@@ -14,6 +14,14 @@ AGENTS.md
 GEMINI.md
 .github/copilot-instructions.md
 
-# Untrack markdown except README
+# Untrack markdown except README and the tracked docs/ set
 *.md
 !README.md
+!docs/*.md
+
+# Rust
+/target/
+/dist-web/
+
+# Shim driver artifacts
+__pycache__/

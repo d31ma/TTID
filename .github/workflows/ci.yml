@@ -13,10 +13,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Test (Bun latest)
+  # The engine. Fast, and the gate most changes need.
+  engine:
+    name: Rust engine
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -27,11 +28,126 @@ jobs:
         with:
           bun-version: latest
 
+      # rust-toolchain.toml pins the channel and the wasm32 target; rustup
+      # honors it on first use.
+      - name: Show toolchain
+        run: rustup show
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+
+      - name: Format
+        run: bun run rust:fmt
+
+      - name: Clippy (native)
+        run: bun run rust:clippy
+
+      - name: Clippy (wasm32)
+        run: bun run rust:clippy:wasm
+
+      # oracle.rs replays the frozen corpus recorded from the JavaScript engine
+      # this replaced; invariants.rs asserts the properties those cases sample;
+      # machine.rs covers the protocol field by field. See docs/TEST_MIGRATION.md.
+      - name: Tests
+        run: bun run rust:test
+
+  # The wasm artifact: identical answers, and small enough to ship.
+  wasm:
+    name: WebAssembly
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-wasm-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+
+      - name: Build
+        run: bun run build:wasm
+
+      # Proves the binary and the wasm module answer identically.
+      - name: ABI parity
+        run: bun scripts/wasm/abi-probe.mjs
+
+      # A dependency added for convenience must not quietly triple what a
+      # browser downloads.
+      - name: Size budget
+        run: bun scripts/wasm/size-budget.mjs
+
+      # Only a browser reproduces the clamped performance.now() that once cut a
+      # 2000-id burst to 135 unique ids. GitHub runners ship Chrome.
+      - name: Browser parity (headless)
+        run: bun scripts/wasm/browser-test.mjs --headless
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Type check
+      # The web client is shipped JavaScript, so it keeps a JavaScript suite.
+      - name: Web client tests
+        run: bun test ./test/
+
+      - name: Typecheck
         run: bun run typecheck
 
-      - name: Run tests
-        run: bun test ./test/
+      - name: Lint
+        run: bun run lint
+
+  # The contract with everything that calls TTID. Slow: Kotlin and C# compile.
+  surface:
+    name: CLI and client shims
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-surface-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+
+      - name: Build the binary
+        run: bun scripts/run-rust.mjs cargo build
+
+      # Argument grammar, help text, exit codes, and the NDJSON loop, against a
+      # committed recording.
+      - name: CLI surface
+        run: bun scripts/compat/cli-differential.mjs
+
+      # The shims are the regression test: if one needs an edit to drive the
+      # binary, compatibility broke. These toolchains ship on the runner image,
+      # so a missing one is a real failure; dart, kotlin, and swift run
+      # opportunistically and log a skip.
+      - name: Client shims drive the binary unmodified
+        run: |
+          bun scripts/compat/shim-differential.mjs \
+            --require python,ruby,node,php,go,rust,java,csharp

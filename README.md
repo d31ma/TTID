@@ -64,14 +64,14 @@ Dependency-free client shims for **11 languages** drive a single `ttid` binary.
 
 ### 📦 No package manager
 
-Ship one binary from GitHub Releases. No npm, no native addons, no build step.
+One 419 KB Rust binary from GitHub Releases. No npm, no native addons, no build step.
 
 </td>
 <td width="33%" valign="top">
 
-### 🧩 Machine-friendly
+### 🕸 Runs in the browser
 
-Every command emits structured JSON, so any runtime can call TTID over stdio.
+The same engine ships as `ttid.wasm` — zero imports, so it runs in any browser, Worker, or WASI host.
 
 </td>
 </tr>
@@ -85,6 +85,7 @@ Every command emits structured JSON, so any runtime can call TTID over stdio.
 - [Installation](#installation)
 - [CLI and Binary Usage](#cli-and-binary-usage)
 - [Language Clients](#language-clients)
+- [WebAssembly](#webassembly)
 - [API Reference](#api-reference)
 - [Format Specification](#format-specification)
 - [Lifecycle States](#lifecycle-states)
@@ -208,12 +209,19 @@ Errors use the same envelope:
 }
 ```
 
-Build a standalone executable:
+Build the binary from source (needs the Rust toolchain pinned in
+`rust-toolchain.toml`):
 
 ```sh
-bun run build:exe
-./dist-bin/ttid generate
-./dist-bin/ttid exec --request '{"op":"generate"}'
+cargo build --release
+./target/release/ttid generate
+./target/release/ttid exec --request '{"op":"generate"}'
+```
+
+Build the WebAssembly module:
+
+```sh
+bun run build:wasm
 ```
 
 ---
@@ -243,8 +251,40 @@ names follow each language's own convention — `snake_case`, `camelCase`, or
 | Dart | [`clients/dart/ttid.dart`](clients/dart/ttid.dart) | `camelCase` |
 | Dart (Flutter) | [`clients/dart/ttid_native.dart`](clients/dart/ttid_native.dart) | native — no binary |
 | Web (browser) | [`clients/web/ttid.mjs`](clients/web/ttid.mjs) | native — no binary |
+| Web (WebAssembly) | [`clients/web/ttid-wasm.mjs`](clients/web/ttid-wasm.mjs) | the compiled engine |
 
 > The **native** clients — Web (JS), iOS (Swift), Android (Kotlin), Flutter (Dart) — reimplement TTID directly instead of driving the binary, because browsers and mobile OSes can't spawn a subprocess. They mirror the library's static API and their IDs still interoperate with every other client. Use the binary-driven `Ttid.swift` / `Ttid.kt` / `ttid.dart` on a server/desktop that has the binary.
+
+### WebAssembly
+
+`ttid.wasm` is the same compiled engine the `ttid` binary runs, so it cannot
+drift from it. The module has **zero imports** — no WASI, no host glue — so it
+loads anywhere `WebAssembly` exists: browsers, Workers, Node, Deno, Bun, and
+WASI runtimes like wasmtime.
+
+```js
+import { load } from './ttid-wasm.mjs'
+
+const TTID = await load('./ttid.wasm')   // 122 KB, fetched once
+
+const id = TTID.generate()               // "4VU77B4MQQY"
+const updated = TTID.generate(id)
+const deleted = TTID.generate(updated, true)
+
+TTID.decodeTime(deleted)                 // { createdAt, updatedAt, deletedAt }
+TTID.isTTID(id)                          // Date, or null
+TTID.isUUID('3f2504e0-…')                // boolean
+```
+
+Both `ttid.wasm` and `ttid-wasm.mjs` are attached to every
+[release](https://github.com/d31ma/TTID/releases).
+
+**Which web client should you use?** `ttid.mjs` unless you have a reason not
+to: it is 4 KB, synchronous, and needs no fetch. Reach for the WebAssembly
+client when you want the identical compiled engine — a WASI runtime, a
+sandboxed plugin host, or an environment where a hand-written implementation is
+not acceptable. Both are tested against the same fixtures in a real browser on
+every change, so they agree.
 
 <details open>
 <summary><strong>Python</strong></summary>
@@ -603,8 +643,15 @@ TTIDs follow a strict format:
 
 - Base-36 encoding provides compact representation
 - Progressive format minimizes storage for simple states
-- High-resolution timestamps ensure uniqueness in high-frequency scenarios
 - Validation includes timestamp parsing for integrity checking
+- **Uniqueness under load is guaranteed, not hoped for.** A raw clock is not
+  enough: the encoded timestamp is a double whose resolution at the current
+  epoch is 200 nanoseconds, and browsers coarsen `performance.now()` to roughly
+  100 microseconds. TTID keeps a monotonic counter, so an id is never repeated
+  and ids stay strictly increasing — verified against a *frozen* clock, which is
+  the worst case any host can present.
+- The guarantee is per process. Two processes generating concurrently can still
+  collide, the same limit ULID's monotonic factory has.
 
 ---
 
@@ -630,5 +677,5 @@ Input length is bounded to 36 characters before any regex evaluation, preventing
 Released under the [MIT License](https://opensource.org/licenses/MIT).
 
 <div align="center">
-<sub>Built with <a href="https://bun.sh">Bun</a> · Distributed as a single binary via <a href="https://github.com/d31ma/TTID/releases">GitHub Releases</a></sub>
+<sub>Written in <a href="https://www.rust-lang.org">Rust</a> · One engine, two artifacts: a single binary and a WebAssembly module, via <a href="https://github.com/d31ma/TTID/releases">GitHub Releases</a></sub>
 </div>
