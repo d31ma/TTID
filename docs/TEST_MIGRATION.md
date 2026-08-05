@@ -7,7 +7,7 @@ Source suites, all removed:
 
 - `test/ttid.test.js` — 32 tests
 - `test/cli.test.js` — 6 tests
-- `test/uniqueness.test.js` — 6 tests × 2 targets (library, web client)
+- `tests/invariants.rs` — 6 tests × 2 targets (library, web client)
 
 Nothing was dropped. Several JavaScript tests collapse into one Rust test
 because the Rust version asserts the same property over ~208 timestamps
@@ -62,7 +62,7 @@ clock.
 | returns structured errors | `machine::returns_structured_errors` |
 | rejects unsupported operations | `machine::rejects_unsupported_operations_through_the_machine_interface` |
 
-## `test/uniqueness.test.js`
+## `tests/invariants.rs`
 
 | JavaScript test | Rust home |
 | --- | --- |
@@ -75,7 +75,7 @@ clock.
 
 The web-client half of this suite is **not** ported to Rust — it tests
 `clients/web/ttid.mjs`, which is shipped JavaScript, not the retired engine. It
-is covered instead by `scripts/wasm/browser-test.mjs`, which runs the same
+is covered instead by `tests/browser.rs`, which runs the same
 uniqueness checks against that file in a real browser on every CI run.
 
 ## Coverage added that JavaScript never had

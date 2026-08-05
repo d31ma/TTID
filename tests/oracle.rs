@@ -10,7 +10,7 @@ use ttid::ttid::Generator;
 use ttid::{machine, ttid as kernel};
 
 fn corpus() -> Value {
-    let raw = include_str!("../test/fixtures/corpus.json");
+    let raw = include_str!("fixtures/corpus.json");
     serde_json::from_str(raw).expect("corpus.json is valid JSON")
 }
 

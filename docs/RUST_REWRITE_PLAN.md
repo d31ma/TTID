@@ -141,18 +141,37 @@ src/wasm.rs           #[cfg(target_arch = "wasm32")] C ABI transport
 tests/oracle.rs       replays the golden corpus, and the uniqueness guarantee
 tests/invariants.rs   properties over arbitrary input, not just recorded cases
 tests/machine.rs      the protocol, asserted field by field
+tests/cli.rs          the whole command surface, against a recording
+tests/shims.rs        eleven client shims, built and driven
+tests/wasm.rs         the C ABI and the size budget, hosted by wasmi
+tests/browser.rs      the module in headless Chrome, served from Rust
+tests/support/        process runner and output normalization
+scripts/cargo.sh      runs cargo through rustup's shim
+scripts/compat/shims/ one driver per language, exercising each SDK shim
 ```
+
+Everything runs under `cargo test`. There is no second build system: the
+JavaScript tooling the migration leaned on — `package.json`, Bun, ESLint,
+`jsconfig.json`, the `.d.ts` files and the `.mjs` harnesses — was removed once
+the harnesses had Rust equivalents.
 
 Dependencies: `serde`, `serde_json`. No `regex` — the two patterns are simple
 enough to hand-check in ~30 lines, and the crate would dominate the wasm
 module. Lints, `deny.toml`, and the release profile (`lto`, `codegen-units=1`,
 `panic="abort"`, `strip`) are lifted from FYLO.
 
-`scripts/run-rust.mjs` (also from FYLO) pins every invocation to the toolchain
-in `rust-toolchain.toml` — necessary here because Homebrew's `rustc` shadows
-rustup on this machine.
+Dev-dependency: `wasmi`, a pure-Rust WebAssembly interpreter, so the ABI gate
+runs under `cargo test` instead of a JavaScript host.
+
+`scripts/cargo.sh` puts rustup's shim first on `PATH` before handing over, so
+`rust-toolchain.toml` is honoured — necessary on machines where a package
+manager's `cargo` shadows rustup and silently builds with the wrong version.
 
 ## 6. Phases
+
+*Historical.* Some files named below — `generate-corpus.mjs`,
+`differential.mjs`, `run-rust.mjs` — existed only during the migration and have
+since been removed; their gates live in `tests/` now.
 
 The JavaScript implementation stayed the production default and the behavioral
 oracle through Phase 5; nothing reached users before then. Phase 6 handed the
@@ -164,7 +183,7 @@ CI job running fmt + clippy + test. No behavior.
 
 ### Phase 1 — Oracle and golden corpus ✅
 Freeze today's JS as the oracle. `scripts/compat/generate-corpus.mjs` emits
-`test/fixtures/corpus.json`, committed, covering:
+`tests/fixtures/corpus.json`, committed, covering:
 
 - generate: new, update, delete, delete-without-update (`X` placeholder),
   already-deleted rejection, invalid-input rejection — each with its exact
@@ -191,18 +210,18 @@ identity on the `isTTID` result. Fixed with the `preserve_order` feature — the
 same reason FYLO enables it.
 
 ### Phase 3 — Wasm kernel ✅ (size budget outstanding)
-`src/wasm.rs` implements the ABI above. `scripts/wasm/abi-probe.mjs`
+`src/wasm.rs` implements the ABI above. `tests/wasm.rs`
 instantiates the module and replays the corpus through it: all 32 protocol
 cases return the same bytes as the oracle, and the differential harness drives
 its Rust side through this same module.
 
 The module has **zero imports** and needs no host glue, so it runs unchanged in
 browsers, Node, Deno, Bun, Workers, and WASI hosts.
-`scripts/wasm/browser-test.mjs` serves a page that runs it in a real browser —
+`tests/browser.rs` serves a page that runs it in a real browser —
 16 checks pass, including the full corpus over the raw ABI.
 `clients/web/ttid-wasm.mjs` is the ergonomic loader.
 
-**Size budget.** `scripts/wasm/size-budget.mjs` holds the module at 128 KiB raw
+**Size budget.** `tests/wasm.rs` holds the module at 128 KiB raw
 and 48 KiB brotli — 122.2 and 44.6 today. Brotli is the number that matters,
 since that is what a browser downloads. `serde_json` plus `indexmap` are the
 bulk; hand-rolled serialization of four ops and six fields would reach roughly
@@ -218,10 +237,10 @@ broken input to confirm they fail when they should.
 `src/main.rs` — argument grammar, help text, exit codes, `exec --request` in all
 three forms, and the `exec --loop` NDJSON transport. Gates, both passing:
 
-- `scripts/compat/cli-differential.mjs` drives the JavaScript CLI and the Rust
+- `tests/cli.rs` drives the JavaScript CLI and the Rust
   binary over 32 cases and requires identical stdout and exit codes. Only
   `durationMs` and freshly minted timestamps are normalized.
-- `scripts/compat/shim-differential.mjs` runs six client shims **unmodified**
+- `tests/shims.rs` runs six client shims **unmodified**
   against both binaries: python, ruby, node, php, dart, go. All identical.
 
 One divergence had to be closed by hand: Bun renders file errors as
@@ -285,10 +304,10 @@ the client shims, and the verification harnesses.
 
 Its three jobs were handed off before it went:
 
-- *behavioral oracle* → `test/fixtures/corpus.json`, frozen and replayed by
+- *behavioral oracle* → `tests/fixtures/corpus.json`, frozen and replayed by
   `tests/oracle.rs` via `include_str!`;
 - *differential counterparty* → committed recordings in
-  `test/fixtures/cli-expectations.json` and `shim-expectations.json`, produced
+  `tests/fixtures/cli-expectations.json` and `shim-expectations.json`, produced
   while it was still there to check them against;
 - *test suite* → `tests/invariants.rs` and `tests/machine.rs`. Every test is
   accounted for in `docs/TEST_MIGRATION.md`.

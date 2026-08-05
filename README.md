@@ -264,7 +264,14 @@ cargo build --release
 Build the WebAssembly module:
 
 ```sh
-bun run build:wasm
+cargo build --lib --release --target wasm32-unknown-unknown
+```
+
+Run the whole gate — kernel, protocol, wasm ABI, size budget, real browser, CLI
+surface and all eleven client shims — with one command:
+
+```sh
+cargo test
 ```
 
 ---
@@ -761,10 +768,9 @@ A future major release will narrow validation to the canonical form only
 
 ## Security
 
-**A TTID is a string, and nothing about its type makes it trustworthy.** The
-`_ttid` type in `types/index.d.ts` is a template-literal alias, not a
-runtime-enforced brand — a plain `string` will satisfy it. Validation is the
-only thing that establishes an identifier is real.
+**A TTID is a string, and nothing about where it came from makes it
+trustworthy.** Validation is the only thing that establishes an identifier is
+real.
 
 **Rule:** obtain identifiers from `generate`, or validate them with `isTTID`,
 before using them as database keys, in access-control checks, or in audit logs.

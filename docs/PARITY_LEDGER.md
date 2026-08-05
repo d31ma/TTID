@@ -7,7 +7,7 @@ that still run.
 
 Everything marked `identical` was proven by executing a harness while both
 engines were present. Those proofs are preserved as committed recordings —
-`test/fixtures/corpus.json`, `cli-expectations.json`, `shim-expectations.json` —
+`tests/fixtures/corpus.json`, `cli-expectations.json`, `shim-expectations.json` —
 which CI still checks on every run. See [TEST_MIGRATION.md](TEST_MIGRATION.md)
 for where each JavaScript test now lives.
 
@@ -15,7 +15,7 @@ Maintained by hand, checked by machine. Every `identical` row below was proven
 by executing a harness, not by reading source:
 
 ```bash
-bun run rust:verify
+cargo test
 ```
 
 ## Vocabulary
@@ -55,17 +55,18 @@ bun run rust:verify
 | `op` defaults to `generate` on success, `null` on error | `identical` | corpus `machine` |
 | JavaScript falsiness of `request.id` (`null`, `0`, `false`, `""`) | `identical` | corpus `machine` |
 | Non-string truthy `request.id` → `Invalid TTID!` | `identical` | corpus `machine`, 5 cases |
-| Blank NDJSON line produces no response | `identical` | `tests/oracle.rs`, `scripts/wasm/abi-probe.mjs` |
-| Malformed JSON → `Invalid JSON request` | `identical` | `tests/oracle.rs`, `scripts/wasm/abi-probe.mjs` |
+| Blank NDJSON line produces no response | `identical` | `tests/oracle.rs`, `tests/wasm.rs` |
+| Malformed JSON → `Invalid JSON request` | `identical` | `tests/oracle.rs`, `tests/wasm.rs` |
 
 ## Browser
 
-Run headless with `bun run test:browser`, or serve it and look yourself with
-`bun run test:browser:serve`. No Playwright: the page POSTs its own verdict to
-the harness, so any browser that can open a URL is a sufficient driver, and CI
+Run with `cargo test --test browser`. The server, driver and assertions are
+Rust; the page's own `<script>` is the only JavaScript, which is irreducible —
+a browser has no other scripting language. No Playwright: the page POSTs its
+verdict back to the harness, so any browser that can open a URL will do, and CI
 uses the Chrome already on the runner image.
 
-A browser is not redundant with the Bun-hosted probe — it is the only place that
+A browser is not redundant with the `wasmi`-hosted probe — it is the only place that
 reproduces the clamped `performance.now()` that once cut a 2000-id burst to 135
 unique ids.
 
@@ -97,15 +98,15 @@ Measured before the fix, 2000 ids in a tight loop:
 
 | Target | Unique |
 | --- | --- |
-| JavaScript library (Bun, nanosecond clock) | 1746 / 2000 |
+| the JavaScript engine (nanosecond clock) | 1746 / 2000 |
 | `clients/web/ttid.mjs` in a browser | 30 / 2000 |
 | wasm kernel in a browser | 135 / 2000 |
 
 Raising `PRECISION` cannot fix it: 11 base-36 characters cap the value at
 `36^11`, and f64's mantissa caps the resolution regardless.
 
-**The fix**, applied to the Rust kernel (`ttid::Generator`), the JavaScript
-library (`src/utils/time.js`), and the web shim: if the clock has not advanced
+**The fix**, applied to the Rust kernel (`ttid::Generator`) and, while it still
+existed, the JavaScript engine and the web shim: if the clock has not advanced
 past the last id issued, use the next representable value instead. This is what
 ULID's monotonic factory and Snowflake's sequence field do.
 
@@ -115,12 +116,11 @@ the sum actually differs.
 
 | Target | Unique after the fix |
 | --- | --- |
-| JavaScript library | 50000 / 50000 |
 | `clients/web/ttid.mjs` in a browser | 2000 / 2000 |
 | wasm kernel in a browser | 2000 / 2000 |
 | wasm kernel, clock **frozen** | 20000 / 20000 |
 | Rust kernel, clock **frozen** | 20000 / 20000 |
-| `ttid exec --loop`, both binaries | 5000 / 5000 |
+| `ttid exec --loop` | 5000 / 5000 |
 
 Properties preserved: ids stay 11 characters, stay strictly increasing (so
 lexicographic sort is still creation order), and stay decodable. One scaled unit
@@ -129,14 +129,14 @@ below what `decodeTime` rounds to.
 
 | Behavior | Status | Evidence |
 | --- | --- | --- |
-| A burst on a frozen clock never repeats | `changed` | `tests/oracle.rs`, `abi-probe.mjs`, browser page, `test/uniqueness.test.js` |
+| A burst on a frozen clock never repeats | `changed` | `tests/oracle.rs`, `tests/wasm.rs`, browser page |
 | A burst stays strictly increasing | `changed` | same |
 | A moving clock is byte-identical to the stateless path | `identical` | `tests/oracle.rs` — the bump only replaces a would-be duplicate |
 | A rejected request does not burn a timestamp | `changed` | `tests/oracle.rs` |
 | The golden corpus | `identical` | Unchanged by the fix; harnesses reset the counter to pin the stateless contract |
 
 **Known limit.** The guarantee is per generator: per process for the binary, per
-module instance for wasm, per module for the JavaScript library. Two processes
+module instance for wasm, per module for the web client. Two processes
 or two machines can still collide — the same limit ULID's monotonic factory has.
 A client shim holds one long-lived `ttid` process, so one generator covers one
 application.
@@ -145,7 +145,7 @@ application.
 
 | Behavior | Status | Evidence |
 | --- | --- | --- |
-| Every machine-protocol response | `identical` | `scripts/wasm/abi-probe.mjs` — 32 cases, same bytes |
+| Every machine-protocol response | `identical` | `tests/wasm.rs` — 32 cases, same bytes |
 
 Both transports call the same `machine::execute_line`, so this is identity by
 construction rather than by coincidence. The probe exists to keep it that way.
@@ -167,7 +167,7 @@ Added in 26.32.03, additive and non-breaking:
 | Normalizing preserves the decoded instant | `rust-only` | `invariants::canonical_preserves_the_decoded_instant` |
 | Restores chronological byte-order sorting | `rust-only` | `invariants::canonicalizing_restores_chronological_sort_order` |
 | Rejects anything that is not a valid TTID | `rust-only` | `invariants::canonical_rejects_what_is_not_a_ttid` |
-| Available in all four native clients | `identical` | `test/canonical.test.js`; Swift, Kotlin and Dart compile-checked |
+| Available in all four native clients | `identical` | `tests/invariants.rs`; Swift, Kotlin and Dart compile-checked |
 
 `canonical` is **deliberately lenient** in what it accepts, and stays that way
 even after validation tightens. It is the repair path for identifiers already
@@ -199,7 +199,7 @@ to land together with:
 
 ## Native CLI
 
-Verified by `scripts/compat/cli-differential.mjs` — 32 cases run against both
+Verified by `tests/cli.rs` — 32 cases run against both
 binaries, comparing stdout and exit code. `durationMs` and the timestamps inside
 freshly minted ids are normalized; nothing else is.
 
@@ -218,7 +218,7 @@ freshly minted ids are normalized; nothing else is.
 
 ## Client shims
 
-Verified by `scripts/compat/shim-differential.mjs`. Each shim is run
+Verified by `tests/shims.rs`. Each shim is run
 **unmodified** against the JavaScript binary and the Rust binary; the outputs
 must match.
 
@@ -242,9 +242,9 @@ outside the per-run timeout and is not paid twice.
 
 The harness makes **two** checks, and only the second needs `legacy/`:
 
-1. Every shim's output must match `test/fixtures/shim-expectations.json`, a
-   committed recording. Re-record with `bun run shims:record` — the diff is the
-   review.
+1. Every shim's output must match `tests/fixtures/shim-expectations.json`, a
+   committed recording. Re-record with `cargo test --test shims -- --ignored record` — the
+   diff is the review.
 2. While `legacy/` exists, each shim also runs against the JavaScript binary and
    the two must agree.
 
@@ -314,5 +314,5 @@ The corpus they produced is frozen and still replayed on every run.
 
 | Behavior | Status | Blocking |
 | --- | --- | --- |
-| Wasm module size budget | `identical` | `scripts/wasm/size-budget.mjs`: 122.2 KiB raw against a 128 KiB ceiling, 44.6 KiB brotli against 48 KiB. Asserted in CI, with a floor so an empty build cannot pass. |
+| Wasm module size budget | `identical` | `tests/wasm.rs`: 122.2 KiB raw against a 128 KiB ceiling, 44.6 KiB brotli against 48 KiB. Asserted in CI, with a floor so an empty build cannot pass. |
 | `clients/web/ttid.mjs` swap to the wasm kernel | `equivalent` | Resolved: both ship. See the note above. |
