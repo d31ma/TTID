@@ -100,15 +100,25 @@ const suite = (TTID, label) => {
   // Spectre mitigation, so the raw clock repeats under any burst. Both clients
   // carry the monotonic-step fix; this is what proves it on each of them.
   const burst = new Set()
+  const started = performance.now()
   for (let i = 0; i < 2000; i++) burst.add(TTID.generate())
+  const elapsed = performance.now() - started
   check(at('2000 ids in a tight loop are unique'), burst.size === 2000, burst.size)
 
   const list = [...burst]
   check(at('ids are strictly increasing'), list.every((v, i) => i === 0 || list[i - 1] < v))
   check(at('ids are all 11 characters'), list.every((v) => v.length === 11))
 
+  // What this actually guards: the monotonic step advances to the next
+  // representable value when the clock has not moved, so the risk is it running
+  // ahead of real time and minting ids stamped in the future. Measured against
+  // the wall clock rather than a fixed ceiling, because a fixed one only
+  // asserts that the runner is fast — which is how a green suite starts
+  // failing on a busy shared machine and teaches everyone to re-run it.
   const drift = TTID.decodeTime(list[list.length - 1]).createdAt - TTID.decodeTime(list[0]).createdAt
-  check(at('a burst barely moves the decoded timestamp'), drift <= 50, drift + 'ms')
+  check(at('the burst does not outrun the wall clock'),
+        drift <= elapsed + 25,
+        drift + 'ms drift over ' + Math.round(elapsed) + 'ms elapsed')
 }
 
 try {
