@@ -24,6 +24,13 @@ use std::sync::mpsc;
 const MODULE: &str = "target/wasm32-unknown-unknown/release/ttid.wasm";
 const CLIENT: &str = "clients/web/ttid-wasm.mjs";
 
+/// The other half of the web surface. `clients/web/ttid.mjs` is the *default*
+/// web client — 4 KB, synchronous, no fetch — and it is a hand-written second
+/// implementation of the kernel, which is exactly the kind of thing that drifts
+/// when nothing checks it. Its suite left with the JavaScript toolchain, so the
+/// same page now runs the same assertions against both clients.
+const PURE_CLIENT: &str = "clients/web/ttid.mjs";
+
 const BROWSERS: &[&str] = &[
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
@@ -52,49 +59,74 @@ const PAGE: &str = r#"<!doctype html>
 <body><pre id="out">running…</pre>
 <script type="module">
 import { load } from './ttid-wasm.mjs'
+import PureTTID from './ttid.mjs'
 const results = []
 const check = (name, ok, detail) => results.push({ name, ok: !!ok, detail: String(detail ?? '') })
 
-try {
-  const TTID = await load('./ttid.wasm')
-  check('abi version is 1', TTID.abiVersion === 1, TTID.abiVersion)
+// Every assertion that both web clients must satisfy. `isUUID` is the one
+// documented divergence — the wasm client returns a boolean, the hand-written
+// one returns the RegExpMatchArray it always did — so it is asserted on
+// truthiness, which is the contract callers actually rely on.
+const suite = (TTID, label) => {
+  const at = (name) => label + ': ' + name
 
   const id = TTID.generate()
-  check('generate returns 11 uppercase characters', /^[A-Z0-9]{11}$/.test(id), id)
+  check(at('generate returns 11 uppercase characters'), /^[A-Z0-9]{11}$/.test(id), id)
 
   const updated = TTID.generate(id)
-  check('generate(id) appends a segment', updated.startsWith(id + '-'), updated)
+  check(at('generate(id) appends a segment'), updated.startsWith(id + '-'), updated)
 
   const deleted = TTID.generate(updated, true)
-  check('generate(id, true) yields three segments', deleted.split('-').length === 3, deleted)
+  check(at('generate(id, true) yields three segments'), deleted.split('-').length === 3, deleted)
 
   let locked = false
   try { TTID.generate(deleted) } catch (e) { locked = e.message === 'This identifier can no longer be modified' }
-  check('a deleted id is immutable', locked)
+  check(at('a deleted id is immutable'), locked)
 
   const times = TTID.decodeTime(deleted)
-  check('decodeTime is chronological',
+  check(at('decodeTime is chronological'),
         times.createdAt <= times.updatedAt && times.updatedAt <= times.deletedAt,
         JSON.stringify(times))
 
-  check('isTTID returns a Date', TTID.isTTID(id) instanceof Date)
-  check('isTTID rejects junk', TTID.isTTID('not-a-ttid') === null)
-  check('isUUID accepts a uuid', TTID.isUUID('3f2504e0-4f89-41d3-9a0c-0305e82c3301') === true)
-  check('isUUID rejects a ttid', TTID.isUUID(id) === false)
-  check('canonical normalizes case', TTID.canonical(id.toLowerCase()) === id)
+  check(at('isTTID returns a Date'), TTID.isTTID(id) instanceof Date)
+  check(at('isTTID rejects junk'), TTID.isTTID('not-a-ttid') === null)
+  check(at('isUUID accepts a uuid'), !!TTID.isUUID('3f2504e0-4f89-41d3-9a0c-0305e82c3301'))
+  check(at('isUUID rejects a ttid'), !TTID.isUUID(id))
+  check(at('canonical normalizes case'), TTID.canonical(id.toLowerCase()) === id)
+  check(at('canonical is idempotent'), TTID.canonical(TTID.canonical(id)) === id)
+  check(at('canonical rejects junk'), TTID.canonical('not-a-ttid') === null)
 
   // The reason this test exists: browsers coarsen performance.now() as a
-  // Spectre mitigation, so the raw clock repeats under any burst.
+  // Spectre mitigation, so the raw clock repeats under any burst. Both clients
+  // carry the monotonic-step fix; this is what proves it on each of them.
   const burst = new Set()
   for (let i = 0; i < 2000; i++) burst.add(TTID.generate())
-  check('2000 ids in a tight loop are unique', burst.size === 2000, burst.size)
+  check(at('2000 ids in a tight loop are unique'), burst.size === 2000, burst.size)
 
   const list = [...burst]
-  check('ids are strictly increasing', list.every((v, i) => i === 0 || list[i - 1] < v))
-  check('ids are all 11 characters', list.every((v) => v.length === 11))
+  check(at('ids are strictly increasing'), list.every((v, i) => i === 0 || list[i - 1] < v))
+  check(at('ids are all 11 characters'), list.every((v) => v.length === 11))
 
   const drift = TTID.decodeTime(list[list.length - 1]).createdAt - TTID.decodeTime(list[0]).createdAt
-  check('a burst barely moves the decoded timestamp', drift <= 50, drift + 'ms')
+  check(at('a burst barely moves the decoded timestamp'), drift <= 50, drift + 'ms')
+}
+
+try {
+  const WasmTTID = await load('./ttid.wasm')
+  check('abi version is 1', WasmTTID.abiVersion === 1, WasmTTID.abiVersion)
+
+  suite(WasmTTID, 'wasm')
+  suite(PureTTID, 'pure')
+
+  // The two are separate implementations of one contract, so an id minted by
+  // either has to be readable by the other.
+  const fromPure = PureTTID.generate()
+  const fromWasm = WasmTTID.generate()
+  check('wasm reads an id the pure client minted', WasmTTID.isTTID(fromPure) instanceof Date, fromPure)
+  check('the pure client reads an id wasm minted', PureTTID.isTTID(fromWasm) instanceof Date, fromWasm)
+  check('both canonicalize identically',
+        WasmTTID.canonical(fromPure.toLowerCase()) === PureTTID.canonical(fromPure.toLowerCase()),
+        fromPure)
 } catch (error) {
   check('the page ran without throwing', false, error && error.stack || error)
 }
@@ -113,7 +145,7 @@ fn respond(stream: &mut TcpStream, content_type: &str, body: &[u8]) {
     let _ = stream.flush();
 }
 
-/// Serve the three files the page needs, and capture the verdict it posts back.
+/// Serve the four files the page needs, and capture the verdict it posts back.
 fn serve(listener: &TcpListener, verdict: &mpsc::Sender<String>) {
     for incoming in listener.incoming() {
         let Ok(mut stream) = incoming else { continue };
@@ -153,6 +185,10 @@ fn serve(listener: &TcpListener, verdict: &mpsc::Sender<String>) {
             }
             (_, "/ttid-wasm.mjs") => {
                 let bytes = std::fs::read(CLIENT).unwrap_or_default();
+                respond(&mut stream, "text/javascript", &bytes);
+            }
+            (_, "/ttid.mjs") => {
+                let bytes = std::fs::read(PURE_CLIENT).unwrap_or_default();
                 respond(&mut stream, "text/javascript", &bytes);
             }
             _ => {

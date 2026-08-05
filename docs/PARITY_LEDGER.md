@@ -82,8 +82,10 @@ unique ids.
 `clients/web/ttid-wasm.mjs` is for callers that need the identical compiled
 engine: WASI runtimes, sandboxed plugin hosts. The drift risk that made a
 hand-written second implementation dangerous is retired by testing, not by
-deletion: both are gated against this corpus and the uniqueness suite, in a real
-browser, on every change.
+deletion: `tests/browser.rs` runs one assertion suite against both clients in a
+real browser on every change — 36 checks, including the 2000-id uniqueness
+burst on each and three that mint an id with one client and read it with the
+other.
 
 ### Duplicate ids under load — found, then fixed on every target
 
@@ -303,7 +305,7 @@ was verified with `legacy/` moved aside; everything below passed without it.
 | browser parity (headless) | yes |
 | CLI surface — 32 cases | yes, against a committed recording |
 | client shims — 11 clients | yes, against a committed recording |
-| web client suite | yes — it never used the engine |
+| web client suite | yes — folded into `tests/browser.rs`, which runs both web clients |
 
 Two harnesses were retired with it, because a differential needs two things to
 differ: `scripts/compat/differential.mjs` (randomized JS-vs-Rust) and
