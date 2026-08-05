@@ -15,6 +15,7 @@ out << ["isTTID", t.is_ttid(FIXED)]
 out << ["isTTID-bad", t.is_ttid("nope")]
 out << ["isUUID", t.is_uuid("3f2504e0-4f89-41d3-9a0c-0305e82c3301")]
 out << ["isUUID-bad", t.is_uuid("nope")]
+out << ["canonical", t.canonicalize(FIXED.downcase)]
 begin
   t.generate(DELETED)
   out << ["error", "NO ERROR RAISED"]

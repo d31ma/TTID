@@ -121,6 +121,12 @@ func (t *TTID) IsTTID(id string) (any, error) {
 	return t.op("isTTID", map[string]any{"id": id})
 }
 
+// Canonicalize returns the canonical (uppercase) spelling of a valid TTID.
+// Normalize before storing or comparing.
+func (t *TTID) Canonicalize(id string) (any, error) {
+	return t.op("canonicalize", map[string]any{"id": id})
+}
+
 func (t *TTID) IsUUID(id string) (any, error) {
 	return t.op("isUUID", map[string]any{"id": id})
 }

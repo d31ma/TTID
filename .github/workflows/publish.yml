@@ -22,42 +22,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
       # Installs the pinned channel *and* the wasm32 target declared in
       # rust-toolchain.toml; the wasm build below cannot add a missing target.
       - name: Show toolchain
         run: rustup show
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      # The engine, the machine protocol, and the CLI's argument grammar. The
+      # client shims and the browser run on the PR gate in ci.yml; these are the
+      # ones that decide whether the artifact itself is fit to ship.
+      #
+      # `--locked` throughout: the shipped binaries build with it, so the gate
+      # has to resolve the same dependency versions or it is testing something
+      # other than what ships.
+      - name: Kernel, protocol and CLI
+        run: cargo test --locked --test oracle --test invariants --test machine --test cli
 
-      - name: Rust tests
-        run: bun run rust:test
-
+      # tests/wasm.rs skips when the module is missing rather than failing, so
+      # the build has to come first — otherwise the parity and size gates would
+      # "pass" by never running.
       - name: Wasm parity and budget
         run: |
-          bun run build:wasm
-          bun scripts/wasm/abi-probe.mjs
-          bun scripts/wasm/size-budget.mjs
-
-      - name: CLI surface
-        run: |
-          bun scripts/run-rust.mjs cargo build
-          bun scripts/compat/cli-differential.mjs
-
-      - name: Web client tests and typecheck
-        run: |
-          bun test ./test/
-          bun run typecheck
+          cargo build --locked --lib --release --target wasm32-unknown-unknown
+          cargo test --locked --test wasm
 
       # install.sh and install.ps1 ship as release assets; the checksum gate has
       # to hold before anything is published. The ps1 half runs in CI on Windows.
       - name: Installer
-        run: sh test/install.sh
+        run: sh tests/install.sh
 
   version:
     name: Read version
@@ -73,10 +64,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Read package version
+      # CalVer zero-pads its fields, which makes `26.32.02` invalid semver, so
+      # the released version cannot live in Cargo.toml. A one-line file needs no
+      # toolchain to read and no parser to get wrong.
+      - name: Read the release version
         id: read
         run: |
-          VERSION=$(node -p "require('./package.json').version")
+          set -euo pipefail
+          VERSION=$(tr -d '[:space:]' < VERSION)
+          case "$VERSION" in
+            [0-9][0-9].[0-9][0-9].[0-9][0-9]|[0-9][0-9].[0-9][0-9].[0-9][0-9]-[0-9]*) ;;
+            *) echo "VERSION is '$VERSION'; expected CalVer YY.WW.DD[-N]" >&2; exit 1 ;;
+          esac
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Version: $VERSION"
 
@@ -107,6 +106,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      # The tag lands before the assets do, so a failure further down leaves the
+      # tag pushed and the release still a draft. The `version` job then reads
+      # `tag_exists=true` and skips every rerun. To recover: delete the tag and
+      # the draft, then re-run this workflow.
+      #
+      #   gh release delete "v$VERSION" --yes
+      #   git push --delete origin "v$VERSION"
+      #
+      # Users are unaffected while this is true — `install.sh` resolves releases,
+      # and a draft is not one.
       - name: Create and push version tag
         env:
           VERSION: ${{ needs.version.outputs.version }}
@@ -231,23 +240,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
       # This job builds the shipped artifact, so the wasm32 target from
       # rust-toolchain.toml has to be installed before cargo runs.
       - name: Show toolchain
         run: rustup show
 
       - name: Build the wasm kernel
-        run: bun run build:wasm
+        run: cargo build --locked --lib --release --target wasm32-unknown-unknown
 
       # The module is only worth shipping if it answers identically to the
       # oracle, so the parity probe gates the upload.
       - name: Wasm parity
-        run: bun scripts/wasm/abi-probe.mjs
+        run: cargo test --locked --test wasm
 
       - name: Stage the artifact
         run: |

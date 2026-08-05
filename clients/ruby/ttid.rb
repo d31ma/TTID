@@ -62,6 +62,11 @@ class TTID
     op("isTTID", id: id)
   end
 
+  # Canonical (uppercase) spelling of a valid TTID. Normalize before storing or comparing.
+  def canonicalize(id)
+    op("canonicalize", id: id)
+  end
+
   def is_uuid(id)
     op("isUUID", id: id)
   end

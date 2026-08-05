@@ -405,3 +405,118 @@ fn the_generator_holds_the_format_invariants_under_a_frozen_clock() {
         assert!(times.updated_at.unwrap() <= times.deleted_at.unwrap());
     }
 }
+
+// --- canonical form -------------------------------------------------------
+// Issue #32: identifiers are matched case-insensitively but only ever emitted
+// in uppercase, so string equality is not identity. `canonical` is what a
+// consumer normalizes with before storing or comparing.
+
+#[test]
+fn canonical_is_uppercase_for_every_accepted_spelling() {
+    for now in timestamps() {
+        let (created, updated, deleted) = lifecycle(now);
+        for id in [&created, &updated, &deleted] {
+            for spelling in [id.clone(), id.to_lowercase(), mixed_case(id)] {
+                let canonical = kernel::canonical(&spelling)
+                    .unwrap_or_else(|| panic!("{spelling} should be canonicalizable"));
+                assert_eq!(canonical, *id, "every spelling must collapse to one form");
+                assert_eq!(canonical, canonical.to_uppercase());
+            }
+        }
+    }
+}
+
+#[test]
+fn canonical_is_idempotent() {
+    for now in timestamps() {
+        let id = kernel::generate(None, false, now).unwrap();
+        let once = kernel::canonical(&id.to_lowercase()).unwrap();
+        let twice = kernel::canonical(&once).unwrap();
+        assert_eq!(once, twice);
+    }
+}
+
+#[test]
+fn canonical_preserves_the_decoded_instant() {
+    for now in timestamps() {
+        let (_, _, deleted) = lifecycle(now);
+        let canonical = kernel::canonical(&deleted.to_lowercase()).unwrap();
+        assert_eq!(
+            kernel::decode_time(&canonical).unwrap(),
+            kernel::decode_time(&deleted).unwrap(),
+            "normalizing must not change what an id means"
+        );
+    }
+}
+
+#[test]
+fn canonical_rejects_what_is_not_a_ttid() {
+    for input in [
+        "",
+        "not-a-ttid",
+        "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+        "00000000000", // in format, out of range
+        "ABCDEFGHIJ",
+    ] {
+        assert_eq!(kernel::canonical(input), None, "input: {input}");
+    }
+}
+
+/// Canonical ids sort chronologically by byte comparison; non-canonical ones do
+/// not, which is the sorting half of issue #32.
+#[test]
+fn canonicalizing_restores_chronological_sort_order() {
+    let mut generator = Generator::new();
+    let base = 1_754_179_200_000.0;
+    let ids: Vec<String> = (0..500)
+        .map(|step| {
+            generator
+                .generate(None, false, base + f64::from(step))
+                .unwrap()
+        })
+        .collect();
+
+    // Spell every other one in lowercase, as a careless consumer might store it.
+    let mixed: Vec<String> = ids
+        .iter()
+        .enumerate()
+        .map(|(index, id)| {
+            if index % 2 == 0 {
+                id.to_lowercase()
+            } else {
+                id.clone()
+            }
+        })
+        .collect();
+
+    let mut sorted_mixed = mixed.clone();
+    sorted_mixed.sort();
+    assert_ne!(
+        sorted_mixed, mixed,
+        "mixed case must break byte-order sorting"
+    );
+
+    let mut normalized: Vec<String> = mixed
+        .iter()
+        .filter_map(|id| kernel::canonical(id))
+        .collect();
+    assert_eq!(normalized.len(), ids.len());
+    let before = normalized.clone();
+    normalized.sort();
+    assert_eq!(normalized, before, "canonical ids sort chronologically");
+    assert_eq!(normalized, ids);
+}
+
+/// Alternate the case of the letters, leaving digits alone.
+fn mixed_case(id: &str) -> String {
+    id.chars()
+        .enumerate()
+        .map(|(index, character)| {
+            if index % 2 == 0 {
+                character.to_ascii_lowercase()
+            } else {
+                character.to_ascii_uppercase()
+            }
+        })
+        .collect()
+}

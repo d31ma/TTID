@@ -221,6 +221,23 @@ pub fn is_ttid(id: &str) -> Option<i64> {
     decode_time(id).ok().map(|times| times.created_at)
 }
 
+/// Return the canonical spelling of a valid TTID.
+///
+/// Identifiers are matched case-insensitively but only ever *emitted* in
+/// uppercase, so a consumer that stores or compares whatever spelling it was
+/// handed can end up treating one identifier as several. This is the function
+/// that settles it: feed it any accepted spelling, store what it returns.
+///
+/// Deliberately lenient in what it accepts — normalizing already-canonical
+/// input is a no-op, and rejecting non-canonical input here would leave a
+/// consumer that already has some no way to repair it.
+///
+/// Returns `None` for anything that is not a valid TTID.
+#[must_use]
+pub fn canonical(id: &str) -> Option<String> {
+    is_ttid(id).map(|_| id.to_uppercase())
+}
+
 /// Check whether a string is a valid UUID of any version or variant.
 #[must_use]
 pub fn is_uuid(id: &str) -> bool {

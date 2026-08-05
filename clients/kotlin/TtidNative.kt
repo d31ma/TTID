@@ -74,6 +74,15 @@ object TtidNative {
         }
     }
 
+    /**
+     * The canonical (uppercase) spelling of a valid TTID, or `null`.
+     *
+     * Identifiers are matched case-insensitively but only ever emitted in
+     * uppercase, so string equality is not identity unless you normalize.
+     * Feed this any accepted spelling and store what it returns.
+     */
+    fun canonical(id: String): String? = if (isTTID(id) == null) null else id.uppercase()
+
     /** Validate a UUID (any version or variant). */
     fun isUUID(id: String): Boolean = uuidPattern.matches(id)
 

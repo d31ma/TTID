@@ -76,6 +76,14 @@ class Ttid {
   /// Validate a UUID (any version or variant). Returns the match, else `null`.
   static RegExpMatch? isUuid(String id) => _uuidPattern.firstMatch(id);
 
+  /// The canonical (uppercase) spelling of a valid TTID, or `null`.
+  ///
+  /// Identifiers are matched case-insensitively but only ever emitted in
+  /// uppercase, so string equality is not identity unless you normalize.
+  /// Feed this any accepted spelling and store what it returns.
+  static String? canonical(String id) =>
+      isTtid(id) == null ? null : id.toUpperCase();
+
   /// Generate a new TTID, or advance an existing one through its lifecycle.
   ///
   /// - no args: mints a new single-segment TTID

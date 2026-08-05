@@ -72,6 +72,10 @@ class TTID:
         """Validate a TTID → {valid, createdAt}."""
         return self._op("isTTID", id=id)
 
+    def canonicalize(self, id):
+        """Canonical (uppercase) spelling of a valid TTID. Normalize before storing or comparing."""
+        return self._op("canonicalize", id=id)
+
     def is_uuid(self, id):
         """Validate a UUID → {valid}."""
         return self._op("isUUID", id=id)

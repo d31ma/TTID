@@ -12,6 +12,9 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   # The engine. Fast, and the gate most changes need.
   engine:
@@ -23,13 +26,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
       # rust-toolchain.toml pins the channel and the wasm32 target; rustup
-      # honors it on first use.
+      # installs both on first use.
       - name: Show toolchain
         run: rustup show
 
@@ -43,19 +41,19 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
 
       - name: Format
-        run: bun run rust:fmt
+        run: cargo fmt --all --check
 
       - name: Clippy (native)
-        run: bun run rust:clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Clippy (wasm32)
-        run: bun run rust:clippy:wasm
+        run: cargo clippy --lib --target wasm32-unknown-unknown -- -D warnings
 
       # oracle.rs replays the frozen corpus recorded from the JavaScript engine
       # this replaced; invariants.rs asserts the properties those cases sample;
       # machine.rs covers the protocol field by field. See docs/TEST_MIGRATION.md.
-      - name: Tests
-        run: bun run rust:test
+      - name: Kernel and protocol tests
+        run: cargo test --test oracle --test invariants --test machine
 
       # deny.toml has been configured all along but nothing ran it, so
       # advisories and license drift went unchecked. This is that gate.
@@ -63,9 +61,10 @@ jobs:
         uses: taiki-e/install-action@cargo-deny
 
       - name: Advisories, bans, licenses, sources
-        run: bun run rust:deny
+        run: cargo deny check
 
-  # The wasm artifact: identical answers, and small enough to ship.
+  # The WebAssembly artifact: identical answers, small enough to ship, and
+  # correct in a real browser.
   wasm:
     name: WebAssembly
     runs-on: ubuntu-latest
@@ -74,11 +73,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
 
       # Installs the pinned channel *and* the wasm32 target declared in
       # rust-toolchain.toml. Building without this fails with "can't find crate
@@ -95,35 +89,50 @@ jobs:
             target
           key: cargo-wasm-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
 
-      - name: Build
-        run: bun run build:wasm
+      - name: Build the module
+        run: cargo build --lib --release --target wasm32-unknown-unknown
 
-      # Proves the binary and the wasm module answer identically.
-      - name: ABI parity
-        run: bun scripts/wasm/abi-probe.mjs
+      # ABI parity and the size budget run under wasmi; the browser test drives
+      # the Chrome on the runner image, which is the only place the clamped
+      # performance.now() that once cut a 2000-id burst to 135 is reproducible.
+      - name: ABI parity, size budget, browser
+        run: cargo test --test wasm --test browser -- --nocapture
 
-      # A dependency added for convenience must not quietly triple what a
-      # browser downloads.
-      - name: Size budget
-        run: bun scripts/wasm/size-budget.mjs
+  # The contract with everything that calls TTID. Slow: Kotlin and C# compile.
+  surface:
+    name: CLI and client shims
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
 
-      # Only a browser reproduces the clamped performance.now() that once cut a
-      # 2000-id burst to 135 unique ids. GitHub runners ship Chrome.
-      - name: Browser parity (headless)
-        run: bun scripts/wasm/browser-test.mjs --headless
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - name: Show toolchain
+        run: rustup show
 
-      # The web client is shipped JavaScript, so it keeps a JavaScript suite.
-      - name: Web client tests
-        run: bun test ./test/
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-surface-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
 
-      - name: Typecheck
-        run: bun run typecheck
+      # Argument grammar, help text, exit codes, and the NDJSON loop, against a
+      # committed recording.
+      - name: CLI surface
+        run: cargo test --test cli -- --nocapture
 
-      - name: Lint
-        run: bun run lint
+      # The shims are the regression test: if one needs an edit to drive the
+      # binary, compatibility broke. These toolchains ship on the runner image,
+      # so a missing one is a real failure; dart, kotlin and swift run
+      # opportunistically and are named in the skip list.
+      - name: Client shims drive the binary unmodified
+        env:
+          TTID_REQUIRE: python,ruby,node,php,go,rust,java,csharp
+        run: cargo test --test shims -- --nocapture
 
   # The installers are how most users get the binary, so their checksum gate is
   # release-critical and must keep failing closed.
@@ -140,10 +149,10 @@ jobs:
         include:
           - runner: ubuntu-latest
             label: sh
-            script: sh test/install.sh
+            script: sh tests/install.sh
           - runner: windows-latest
             label: pwsh
-            script: pwsh -NoProfile -File test/install.ps1
+            script: pwsh -NoProfile -File tests/install.ps1
 
     steps:
       - name: Checkout
@@ -152,47 +161,3 @@ jobs:
       - name: Test installer
         shell: bash
         run: ${{ matrix.script }}
-
-  # The contract with everything that calls TTID. Slow: Kotlin and C# compile.
-  surface:
-    name: CLI and client shims
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Show toolchain
-        run: rustup show
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: cargo-surface-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
-
-      - name: Build the binary
-        run: bun scripts/run-rust.mjs cargo build
-
-      # Argument grammar, help text, exit codes, and the NDJSON loop, against a
-      # committed recording.
-      - name: CLI surface
-        run: bun scripts/compat/cli-differential.mjs
-
-      # The shims are the regression test: if one needs an edit to drive the
-      # binary, compatibility broke. These toolchains ship on the runner image,
-      # so a missing one is a real failure; dart, kotlin, and swift run
-      # opportunistically and log a skip.
-      - name: Client shims drive the binary unmodified
-        run: |
-          bun scripts/compat/shim-differential.mjs \
-            --require python,ruby,node,php,go,rust,java,csharp

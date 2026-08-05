@@ -1,7 +1,9 @@
 [package]
 name = "ttid"
-# Cargo requires semver; TTID releases are CalVer. package.json stays the
-# source of truth for the released version, as in FYLO and TACHYON.
+# Cargo requires semver and CalVer's zero-padded fields are not valid semver
+# (`26.32.02` has a leading zero in the patch field), so the released version
+# lives in the `VERSION` file, which `publish.yml` reads. This one is inert:
+# the crate is `publish = false` and ships as a binary, not from crates.io.
 version = "0.0.0-rewrite"
 edition = "2024"
 rust-version = "1.97.1"
@@ -44,3 +46,6 @@ codegen-units = 1
 opt-level = 3
 panic = "abort"
 strip = true
+
+[dev-dependencies]
+wasmi = { version = "1.1.0", default-features = false, features = ["std"] }

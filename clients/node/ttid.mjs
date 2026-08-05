@@ -79,6 +79,11 @@ export class TTID {
         return this._op('isTTID', { id })
     }
     /** Validate a UUID → { valid }. */
+    /** Canonical (uppercase) spelling of a valid TTID. Normalize before storing or comparing. */
+    canonicalize(id) {
+        return this._op('canonicalize', { id })
+    }
+
     isUUID(id) {
         return this._op('isUUID', { id })
     }

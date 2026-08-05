@@ -92,6 +92,10 @@ namespace Ttid
         public JsonElement IsTTID(string id) =>
             Op($"{{\"op\":\"isTTID\",\"id\":{J(id)}}}");
 
+        /// <summary>Canonical (uppercase) spelling of a valid TTID. Normalize before storing or comparing.</summary>
+        public JsonElement Canonicalize(string id) =>
+            Op($"{{\"op\":\"canonicalize\",\"id\":{J(id)}}}");
+
         public JsonElement IsUUID(string id) =>
             Op($"{{\"op\":\"isUUID\",\"id\":{J(id)}}}");
 

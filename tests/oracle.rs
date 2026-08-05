@@ -1,7 +1,8 @@
 //! Replays the golden corpus produced by the JavaScript oracle.
 //!
-//! Regenerate the corpus with `bun scripts/compat/generate-corpus.mjs`. A diff
-//! in `test/fixtures/corpus.json` is a contract change, not a test update.
+//! The corpus is frozen: the generator that produced it retired with the
+//! JavaScript engine, so a diff in `tests/fixtures/corpus.json` is a contract
+//! change, not a test update.
 
 #![allow(clippy::unwrap_used, clippy::expect_used, missing_docs)]
 
@@ -10,7 +11,7 @@ use ttid::ttid::Generator;
 use ttid::{machine, ttid as kernel};
 
 fn corpus() -> Value {
-    let raw = include_str!("../test/fixtures/corpus.json");
+    let raw = include_str!("fixtures/corpus.json");
     serde_json::from_str(raw).expect("corpus.json is valid JSON")
 }
 

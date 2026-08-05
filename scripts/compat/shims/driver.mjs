@@ -15,6 +15,7 @@ out.push(['isTTID', await t.isTTID(FIXED)])
 out.push(['isTTID-bad', await t.isTTID('nope')])
 out.push(['isUUID', await t.isUUID('3f2504e0-4f89-41d3-9a0c-0305e82c3301')])
 out.push(['isUUID-bad', await t.isUUID('nope')])
+out.push(['canonical', await t.canonicalize(FIXED.toLowerCase())])
 try {
     await t.generate(DELETED)
     out.push(['error', 'NO ERROR RAISED'])

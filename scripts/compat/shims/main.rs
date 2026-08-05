@@ -21,6 +21,7 @@ fn main() -> std::io::Result<()> {
         t.is_uuid("3f2504e0-4f89-41d3-9a0c-0305e82c3301")?.trim()
     );
     println!("isUUID-bad={}", t.is_uuid("nope")?.trim());
+    println!("canonical={}", t.canonicalize(&FIXED.to_lowercase())?.trim());
     // The client surfaces an `ok: false` response as an io::Error carrying the
     // whole response line.
     match t.generate(Some(DELETED), false) {

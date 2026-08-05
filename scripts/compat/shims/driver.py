@@ -16,6 +16,7 @@ with TTID(os.environ["TTID_BIN"]) as t:
     out.append(("isTTID-bad", t.is_ttid("nope")))
     out.append(("isUUID", t.is_uuid("3f2504e0-4f89-41d3-9a0c-0305e82c3301")))
     out.append(("isUUID-bad", t.is_uuid("nope")))
+    out.append(("canonical", t.canonicalize(FIXED.lower())))
     try:
         t.generate(DELETED)
         out.append(("error", "NO ERROR RAISED"))

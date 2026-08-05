@@ -8,7 +8,7 @@
   <a href="https://github.com/d31ma/TTID/releases/latest"><img src="https://img.shields.io/github/v/release/d31ma/TTID?label=release&color=2ea043" alt="Latest release"></a>
   <a href="https://github.com/d31ma/TTID/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/d31ma/TTID/ci.yml?branch=main&label=build" alt="Build status"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
-  <img src="https://img.shields.io/badge/clients-15-8957e5" alt="15 clients">
+  <img src="https://img.shields.io/badge/clients-16-8957e5" alt="16 clients">
   <a href="https://github.com/d31ma/TTID/stargazers"><img src="https://img.shields.io/github/stars/d31ma/TTID?style=flat&color=e3b341" alt="GitHub stars"></a>
 </p>
 
@@ -64,7 +64,7 @@ Dependency-free client shims for **11 languages** drive a single `ttid` binary.
 
 ### 📦 No package manager
 
-One 419 KB Rust binary from GitHub Releases. No npm, no native addons, no build step.
+One ~400 KB Rust binary from GitHub Releases. No npm, no native addons, no build step.
 
 </td>
 <td width="33%" valign="top">
@@ -154,17 +154,17 @@ Two environment variables control the installers:
 
 | Variable | Effect |
 | --- | --- |
-| `TTID_VERSION` | Install a specific release instead of the latest. Accepts `26.28.02` or `v26.28.02`. This is the rollback path. |
+| `TTID_VERSION` | Install a specific release instead of the latest. Accepts `26.32.02` or `v26.32.02`. This is the rollback path. |
 | `TTID_SKIP_CHECKSUM` | Set to `1` to install without verifying the checksum. Only for systems with no `sha256sum`/`shasum`. |
 
 ```sh
 # Pin a version — e.g. to roll back
-TTID_VERSION=26.28.02 curl -fsSL https://github.com/d31ma/TTID/releases/latest/download/install.sh | sh
+TTID_VERSION=26.32.02 curl -fsSL https://github.com/d31ma/TTID/releases/latest/download/install.sh | sh
 ```
 
 ```powershell
 # Windows
-$env:TTID_VERSION = '26.28.02'; irm https://github.com/d31ma/TTID/releases/latest/download/install.ps1 | iex
+$env:TTID_VERSION = '26.32.02'; irm https://github.com/d31ma/TTID/releases/latest/download/install.ps1 | iex
 ```
 
 Prefer to do it by hand? Download the asset for your platform from the
@@ -188,18 +188,40 @@ TTID exposes a `ttid` command. Every command writes structured JSON to stdout an
 
 ```sh
 ttid generate
-ttid generate 0HDE5K8S8J9
-ttid generate 0HDE5K8S8J9 --delete
-ttid decode 0HDE5K8S8J9
-ttid validate 0HDE5K8S8J9
+ttid generate 4SQ1NZT5HC0
+ttid generate 4SQ1NZT5HC0 --delete
+ttid decode 4SQ1NZT5HC0
+ttid validate 4SQ1NZT5HC0
+ttid canonicalize 4sq1nzt5hc0
 ```
 
 For language interop, use the machine interface:
 
 ```sh
 ttid exec --request '{"requestId":"new-user","op":"generate"}'
-ttid exec --request '{"requestId":"delete-user","op":"generate","id":"0HDE5K8S8J9","delete":true}'
+ttid exec --request '{"requestId":"delete-user","op":"generate","id":"4SQ1NZT5HC0","delete":true}'
 ```
+
+Five operations are available:
+
+| `op` | Fields | Result |
+| --- | --- | --- |
+| `generate` | `id?`, `delete?` | the new or advanced identifier |
+| `decodeTime` | `id` | `{ createdAt, updatedAt?, deletedAt? }` |
+| `isTTID` | `id` | `{ valid, createdAt }` |
+| `canonicalize` | `id` | the canonical uppercase spelling |
+| `isUUID` | `id` | `{ valid }` |
+
+For anything more than a one-off call, use the persistent loop instead of a
+process per identifier — one request per line in, one response per line out,
+with the process kept warm between calls:
+
+```sh
+ttid exec --loop
+```
+
+This is what every [client shim](#language-clients) drives, and it is why they
+cost one subprocess rather than one per call.
 
 Successful responses look like this:
 
@@ -210,7 +232,7 @@ Successful responses look like this:
   "op": "generate",
   "requestId": "new-user",
   "durationMs": 1,
-  "result": "0HDE5K8S8J9"
+  "result": "4SQ1NZT5HC0"
 }
 ```
 
@@ -242,8 +264,20 @@ cargo build --release
 Build the WebAssembly module:
 
 ```sh
-bun run build:wasm
+cargo build --lib --release --target wasm32-unknown-unknown
 ```
+
+Run the whole gate — kernel, protocol, wasm ABI, size budget, real browser, CLI
+surface and all eleven client shims — with one command:
+
+```sh
+cargo test
+```
+
+Releases are CalVer (`YY.WW.DD`, UTC), and the released version lives in the
+`VERSION` file at the repo root — not in `Cargo.toml`, whose zero-padded CalVer
+fields would not be valid semver. Bumping `VERSION` on the default branch is
+what cuts a release.
 
 ---
 
@@ -286,7 +320,7 @@ WASI runtimes like wasmtime.
 ```js
 import { load } from './ttid-wasm.mjs'
 
-const TTID = await load('./ttid.wasm')   // 122 KB, fetched once
+const TTID = await load('./ttid.wasm')   // ~45 KB over the wire, fetched once
 
 const id = TTID.generate()               // "4VU77B4MQQY"
 const updated = TTID.generate(id)
@@ -298,7 +332,9 @@ TTID.isUUID('3f2504e0-…')                // boolean
 ```
 
 Both `ttid.wasm` and `ttid-wasm.mjs` are attached to every
-[release](https://github.com/d31ma/TTID/releases).
+[release](https://github.com/d31ma/TTID/releases). The module is ~123 KB on
+disk and ~45 KB brotli-compressed, which is what a browser actually transfers;
+CI holds it to a budget so a dependency cannot quietly inflate it.
 
 **Which web client should you use?** `ttid.mjs` unless you have a reason not
 to: it is 4 KB, synchronous, and needs no fetch. Reach for the WebAssembly
@@ -553,6 +589,11 @@ TTID.isUUID('not-a-uuid')                // RegExpMatchArray if valid, else null
 
 ## API Reference
 
+Every [client](#language-clients) exposes these five operations, named for its
+own language — `decode_time` in Python and Ruby, `DecodeTime` in Go and C#,
+`decodeTime` elsewhere. The signatures below use the JavaScript spelling; the
+CLI equivalent is shown with each.
+
 ### `TTID.generate(id?: string, del?: boolean)`
 
 Generates a new TTID or updates an existing one.
@@ -597,6 +638,48 @@ Validates a TTID and returns creation date if valid.
 - `Date` object (creation date) if valid
 - `null` if invalid
 
+### `TTID.canonical(id: string)`
+
+Returns the canonical (uppercase) spelling of a valid TTID, or `null`.
+
+```js
+TTID.canonical('4vu8c11iu00')   // "4VU8C11IU00"
+TTID.canonical('4VU8C11IU00')   // "4VU8C11IU00"  (idempotent)
+TTID.canonical('not-a-ttid')    // null
+```
+
+```sh
+ttid canonicalize 4vu8c11iu00
+```
+
+**Normalize before you store or compare.** Identifiers are matched
+case-insensitively but only ever *emitted* in uppercase, so a consumer that
+keeps whatever spelling it was handed can treat one identifier as several — an
+id with five letters has 32 accepted spellings that all decode to the same
+instant. Three places this bites:
+
+- **Equality.** `'4vu8c11iu00' !== '4VU8C11IU00'` as strings, though they are
+  the same identifier.
+- **Sorting.** TTIDs are time-ordered by byte comparison, and lowercase sorts
+  after uppercase in ASCII, so a mixed-case corpus does not sort
+  chronologically.
+- **Storage keyed by identifier.** On a case-insensitive filesystem the two
+  spellings collide; on a case-sensitive one they produce two records. Same
+  writes, different outcome per host.
+
+`canonical` is deliberately lenient in what it accepts — that is the point,
+since rejecting non-canonical input would leave anyone who has already stored
+some with no way to repair it.
+
+Available everywhere: every [client](#language-clients) exposes it under its own
+naming convention — `canonicalize` in most, `Canonicalize` in Go and C#, and
+`canonical` in the four native clients that mirror the static API.
+
+> **Planned change.** A future major release will make `isTTID` and `decodeTime`
+> accept only the canonical form, so string equality becomes identity. Normalize
+> your stored identifiers now and that release is a no-op for you.
+> ([#32](https://github.com/d31ma/TTID/issues/32))
+
 ### `TTID.isUUID(id: string)`
 
 Checks if a string is a valid UUID.
@@ -622,8 +705,15 @@ TTIDs follow a strict format:
 - `[A-Z0-9]{11}-[A-Z0-9]{1,11}-[A-Z0-9]{1,11}` - Created + Updated + Deleted
 
 **Special Cases:**
-- Placeholder 'X' may appear in update position for certain states
+- Placeholder `X` appears in the update position when an identifier is deleted
+  without ever having been updated
 - Deleted IDs cannot be modified further
+
+**Case.** The patterns above are matched case-insensitively, but identifiers are
+only ever *emitted* in uppercase — that is the canonical form. Normalize with
+[`canonical`](#ttidcanonicalid-string) before storing, comparing or sorting.
+A future major release will narrow validation to the canonical form only
+([#32](https://github.com/d31ma/TTID/issues/32)).
 
 ---
 
@@ -683,18 +773,29 @@ TTIDs follow a strict format:
 
 ## Security
 
-`_ttid` is a TypeScript template-literal type, not a runtime-enforced brand. TypeScript alone cannot prevent a plain `string` from being used where a `_ttid` is expected.
+**A TTID is a string, and nothing about where it came from makes it
+trustworthy.** Validation is the only thing that establishes an identifier is
+real.
 
-**Rule:** always obtain TTID values via `TTID.generate()` or validate them with `TTID.isTTID()` before using them in any security-sensitive context (database keys, access-control checks, audit logs).
+**Rule:** obtain identifiers from `generate`, or validate them with `isTTID`,
+before using them as database keys, in access-control checks, or in audit logs.
 
-```typescript
-const raw: string = externalInput()
-const valid = TTID.isTTID(raw)   // returns Date | null
+```js
+const valid = TTID.isTTID(externalInput)   // Date, or null
 if (!valid) throw new Error('Invalid identifier')
-// safe to use raw as _ttid from here
 ```
 
-Input length is bounded to 36 characters before any regex evaluation, preventing CPU exhaustion from pathological inputs.
+**Normalize as well as validate.** `isTTID` accepts any case spelling, so
+validation alone does not give you a key you can compare — see
+[`canonical`](#ttidcanonicalid-string). Passing an unnormalized identifier
+straight into a lookup is how the same record ends up under two keys.
+
+**Untrusted input is bounded.** Parsing is a hand-written character scan, not a
+regular expression, so there is no backtracking to exploit. Anything over 36
+characters is rejected on length alone — a full three-segment identifier is 35 —
+and validation allocates nothing proportional to the input. A 10-million-character
+input is rejected in ~11 ms, effectively all of it process startup and pipe
+transfer.
 
 ---
 

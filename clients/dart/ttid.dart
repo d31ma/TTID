@@ -77,6 +77,9 @@ class Ttid {
 
   Future<dynamic> decodeTime(String id) => _op('decodeTime', {'id': id});
   Future<dynamic> isTtid(String id) => _op('isTTID', {'id': id});
+  /// Canonical (uppercase) spelling of a valid TTID. Normalize before storing or comparing.
+  Future<dynamic> canonicalize(String id) => _op('canonicalize', {'id': id});
+
   Future<dynamic> isUuid(String id) => _op('isUUID', {'id': id});
 
   /// Close stdin so the loop ends, wait for the process to exit, and release

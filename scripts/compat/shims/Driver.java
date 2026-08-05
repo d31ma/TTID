@@ -15,6 +15,7 @@ public final class Driver {
             System.out.println("isTTID-bad=" + t.isTTID("nope"));
             System.out.println("isUUID=" + t.isUUID("3f2504e0-4f89-41d3-9a0c-0305e82c3301"));
             System.out.println("isUUID-bad=" + t.isUUID("nope"));
+            System.out.println("canonical=" + t.canonicalize(FIXED.toLowerCase()));
             try {
                 t.generate(DELETED);
                 System.out.println("error=NO ERROR RAISED");

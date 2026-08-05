@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"ttidshim/ttid"
 )
@@ -44,6 +45,7 @@ func main() {
 		{"isUUID", must(t.IsUUID("3f2504e0-4f89-41d3-9a0c-0305e82c3301"))},
 		{"isUUID-bad", must(t.IsUUID("nope"))},
 	}
+	out = append(out, row{"canonical", must(t.Canonicalize(strings.ToLower(fixed)))})
 	if _, err := t.Generate(deleted, false); err != nil {
 		out = append(out, row{"error", err.Error()})
 	} else {

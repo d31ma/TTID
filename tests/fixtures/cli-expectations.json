@@ -1,0 +1,150 @@
+{
+  "no arguments prints help and exits 1": {
+    "stdout": "ttid - time-tagged identifier generator\n\nUsage:\n  ttid generate [id] [--delete]\n  ttid decode <id>\n  ttid validate <id>\n  ttid canonicalize <id>\n  ttid uuid <id>\n  ttid exec --request <json|@path|->\n  ttid exec --loop\n\nOptions:\n  --delete       Mark the TTID as deleted when generating from an existing ID\n  --request      Machine request payload, @file path, or - for stdin\n  --loop         Persistent NDJSON loop: one request/response per line on stdio\n  -h, --help     Show this help and exit\n\nMachine request:\n  {\"op\":\"generate\",\"id\":\"...\",\"delete\":true}\n\nAll commands write structured JSON to stdout.\n",
+    "code": 1
+  },
+  "--help": {
+    "stdout": "ttid - time-tagged identifier generator\n\nUsage:\n  ttid generate [id] [--delete]\n  ttid decode <id>\n  ttid validate <id>\n  ttid canonicalize <id>\n  ttid uuid <id>\n  ttid exec --request <json|@path|->\n  ttid exec --loop\n\nOptions:\n  --delete       Mark the TTID as deleted when generating from an existing ID\n  --request      Machine request payload, @file path, or - for stdin\n  --loop         Persistent NDJSON loop: one request/response per line on stdio\n  -h, --help     Show this help and exit\n\nMachine request:\n  {\"op\":\"generate\",\"id\":\"...\",\"delete\":true}\n\nAll commands write structured JSON to stdout.\n",
+    "code": 0
+  },
+  "-h": {
+    "stdout": "ttid - time-tagged identifier generator\n\nUsage:\n  ttid generate [id] [--delete]\n  ttid decode <id>\n  ttid validate <id>\n  ttid canonicalize <id>\n  ttid uuid <id>\n  ttid exec --request <json|@path|->\n  ttid exec --loop\n\nOptions:\n  --delete       Mark the TTID as deleted when generating from an existing ID\n  --request      Machine request payload, @file path, or - for stdin\n  --loop         Persistent NDJSON loop: one request/response per line on stdio\n  -h, --help     Show this help and exit\n\nMachine request:\n  {\"op\":\"generate\",\"id\":\"...\",\"delete\":true}\n\nAll commands write structured JSON to stdout.\n",
+    "code": 0
+  },
+  "generate": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"generate\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"result\": \"<SEG>\"\n}\n",
+    "code": 0
+  },
+  "generate from an existing id": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"generate\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"result\": \"<SEG>-<SEG>\"\n}\n",
+    "code": 0
+  },
+  "generate --delete": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"generate\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"result\": \"<SEG>-X-<SEG>\"\n}\n",
+    "code": 0
+  },
+  "generate --delete from an updated id": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"generate\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"result\": \"<SEG>-<SEG>-<SEG>\"\n}\n",
+    "code": 0
+  },
+  "generate rejects a deleted id": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": \"generate\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"This identifier can no longer be modified\"\n  }\n}\n",
+    "code": 1
+  },
+  "generate --delete without an id": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": null,\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"Missing id for --delete\"\n  }\n}\n",
+    "code": 1
+  },
+  "generate rejects junk": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": \"generate\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"Invalid TTID!\"\n  }\n}\n",
+    "code": 1
+  },
+  "decode": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"decodeTime\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"result\": {\n    \"createdAt\": 1754179200000,\n    \"updatedAt\": 1754179200001,\n    \"deletedAt\": 1754179200002\n  }\n}\n",
+    "code": 0
+  },
+  "decode one segment": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"decodeTime\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"result\": {\n    \"createdAt\": 1754179200000\n  }\n}\n",
+    "code": 0
+  },
+  "decode rejects junk": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": \"decodeTime\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"Invalid Format!\"\n  }\n}\n",
+    "code": 1
+  },
+  "decode without an id": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": null,\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"Missing id for decode\"\n  }\n}\n",
+    "code": 1
+  },
+  "validate a good id": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"isTTID\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"result\": {\n    \"valid\": true,\n    \"createdAt\": 1754179200000\n  }\n}\n",
+    "code": 0
+  },
+  "validate junk": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"isTTID\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"result\": {\n    \"valid\": false,\n    \"createdAt\": null\n  }\n}\n",
+    "code": 0
+  },
+  "validate without an id": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": null,\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"Missing id for validate\"\n  }\n}\n",
+    "code": 1
+  },
+  "canonicalize an uppercase id": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"canonicalize\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"result\": \"<SEG>\"\n}\n",
+    "code": 0
+  },
+  "canonicalize a lowercase id": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"canonicalize\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"result\": \"<SEG>\"\n}\n",
+    "code": 0
+  },
+  "canonicalize a mixed-case lifecycle id": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"canonicalize\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"result\": \"<SEG>-<SEG>\"\n}\n",
+    "code": 0
+  },
+  "canonicalize rejects junk": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": \"canonicalize\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"Invalid TTID!\"\n  }\n}\n",
+    "code": 1
+  },
+  "canonicalize without an id": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": null,\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"Missing id for canonicalize\"\n  }\n}\n",
+    "code": 1
+  },
+  "uuid accepts a uuid": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"isUUID\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"result\": {\n    \"valid\": true\n  }\n}\n",
+    "code": 0
+  },
+  "uuid rejects a ttid": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"isUUID\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"result\": {\n    \"valid\": false\n  }\n}\n",
+    "code": 0
+  },
+  "uuid without an id": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": null,\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"Missing id for uuid\"\n  }\n}\n",
+    "code": 1
+  },
+  "an unknown command": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": null,\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"Unsupported command \\\"nope\\\"\"\n  }\n}\n",
+    "code": 1
+  },
+  "an unknown command with an argument": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": null,\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"Unsupported command \\\"nope\\\"\"\n  }\n}\n",
+    "code": 1
+  },
+  "exec without --request": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": null,\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"Missing --request for exec\"\n  }\n}\n",
+    "code": 1
+  },
+  "--request without a value": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": null,\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"Missing value for --request\"\n  }\n}\n",
+    "code": 1
+  },
+  "exec with a literal payload": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"isTTID\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"result\": {\n    \"valid\": true,\n    \"createdAt\": 1754179200000\n  }\n}\n",
+    "code": 0
+  },
+  "exec with a requestId": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"isUUID\",\n  \"requestId\": \"r1\",\n  \"durationMs\":<N>,\n  \"result\": {\n    \"valid\": false\n  }\n}\n",
+    "code": 0
+  },
+  "exec from @file": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"generate\",\n  \"requestId\": \"from-file\",\n  \"durationMs\":<N>,\n  \"result\": \"<SEG>\"\n}\n",
+    "code": 0
+  },
+  "exec from a missing @file": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": null,\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"ENOENT: no such file or directory, open '/nonexistent/nope.json'\"\n  }\n}\n",
+    "code": 1
+  },
+  "exec rejects an unknown op": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": \"nope\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"Unsupported machine operation \\\"nope\\\"\"\n  }\n}\n",
+    "code": 1
+  },
+  "exec rejects a non-object payload": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": false,\n  \"op\": null,\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"error\": {\n    \"name\": \"Error\",\n    \"message\": \"Machine request body must be a JSON object\"\n  }\n}\n",
+    "code": 1
+  },
+  "exec from stdin": {
+    "stdout": "{\n  \"protocolVersion\": 1,\n  \"ok\": true,\n  \"op\": \"isTTID\",\n  \"requestId\": null,\n  \"durationMs\":<N>,\n  \"result\": {\n    \"valid\": true,\n    \"createdAt\": 1754179200000\n  }\n}\n",
+    "code": 0
+  },
+  "exec --loop over several requests": {
+    "stdout": "{\"protocolVersion\":1,\"ok\":true,\"op\":\"generate\",\"requestId\":null,\"durationMs\":<N>,\"result\":\"<SEG>\"}\n{\"protocolVersion\":1,\"ok\":true,\"op\":\"decodeTime\",\"requestId\":null,\"durationMs\":<N>,\"result\":{\"createdAt\":1754179200000,\"updatedAt\":1754179200001,\"deletedAt\":1754179200002}}\n{\"protocolVersion\":1,\"ok\":true,\"op\":\"isTTID\",\"requestId\":\"loop-1\",\"durationMs\":<N>,\"result\":{\"valid\":false,\"createdAt\":null}}\n{\"protocolVersion\":1,\"ok\":false,\"op\":null,\"requestId\":null,\"durationMs\":<N>,\"error\":{\"name\":\"Error\",\"message\":\"Invalid JSON request\"}}\n{\"protocolVersion\":1,\"ok\":false,\"op\":\"nope\",\"requestId\":null,\"durationMs\":<N>,\"error\":{\"name\":\"Error\",\"message\":\"Unsupported machine operation \\\"nope\\\"\"}}\n{\"protocolVersion\":1,\"ok\":true,\"op\":\"isUUID\",\"requestId\":null,\"durationMs\":<N>,\"result\":{\"valid\":true}}\n",
+    "code": 0
+  }
+}

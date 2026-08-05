@@ -85,6 +85,8 @@ final class Ttid {
 
     func decodeTime(_ id: String) throws -> Any? { try op("decodeTime", ["id": id]) }
     func isTTID(_ id: String) throws -> Any? { try op("isTTID", ["id": id]) }
+    /// Canonical (uppercase) spelling of a valid TTID. Normalize before storing or comparing.
+    func canonicalize(_ id: String) throws -> Any? { try op("canonicalize", ["id": id]) }
     func isUUID(_ id: String) throws -> Any? { try op("isUUID", ["id": id]) }
 
     /// Close stdin so the loop ends, and wait for the process to exit.

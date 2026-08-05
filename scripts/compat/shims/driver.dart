@@ -17,6 +17,7 @@ Future<void> main() async {
   out.add(['isTTID-bad', await t.isTtid('nope')]);
   out.add(['isUUID', await t.isUuid('3f2504e0-4f89-41d3-9a0c-0305e82c3301')]);
   out.add(['isUUID-bad', await t.isUuid('nope')]);
+  out.add(['canonical', await t.canonicalize(fixed.toLowerCase())]);
   try {
     await t.generate(deleted);
     out.add(['error', 'NO ERROR RAISED']);
