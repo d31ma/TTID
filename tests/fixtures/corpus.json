@@ -1,5 +1,5 @@
 {
-  "$comment": "Golden corpus generated from the JavaScript oracle. Do not hand-edit — regenerate with scripts/compat/generate-corpus.mjs.",
+  "$comment": "Golden corpus recorded from the JavaScript oracle, now frozen — the generator retired with the engine. Do not hand-edit: a diff here is a contract change.",
   "oracle": "javascript",
   "protocolVersion": 1,
   "precision": 10000,

@@ -36,7 +36,7 @@ file for your language and call TTID like a library.
 
 ## Install the binary
 
-Build it from this repo (`bun run build:exe` → `dist-bin/ttid`) or grab a build
+Build it from this repo (`cargo build --release` → `target/release/ttid`) or grab a build
 from the [GitHub releases](https://github.com/d31ma/TTID/releases). Put `ttid`
 on your PATH, then verify: `ttid --help`. Each shim also accepts an explicit
 binary path if you don't want it on PATH.

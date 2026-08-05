@@ -274,6 +274,11 @@ surface and all eleven client shims — with one command:
 cargo test
 ```
 
+Releases are CalVer (`YY.WW.DD`, UTC), and the released version lives in the
+`VERSION` file at the repo root — not in `Cargo.toml`, whose zero-padded CalVer
+fields would not be valid semver. Bumping `VERSION` on the default branch is
+what cuts a release.
+
 ---
 
 ## Language Clients

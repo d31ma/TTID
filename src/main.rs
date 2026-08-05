@@ -2,7 +2,7 @@
 //!
 //! A port of the retired JavaScript CLI. Argument grammar, help text, exit codes, and
 //! output shape are contract — the 11 client shims drive this binary, and
-//! `scripts/compat/cli-differential.mjs` compares it against the JavaScript CLI
+//! `tests/cli.rs` replays a committed recording of the JavaScript CLI's answers
 //! command for command.
 
 use std::io::{BufRead, IsTerminal, Write};
